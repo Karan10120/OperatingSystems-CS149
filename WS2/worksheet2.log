@@ -1,0 +1,11 @@
+    1  date
+    2  pwd
+    3  cd ~
+    4  cd Desktop/
+    5  ls -latr; mkdir ws2; cd ws2
+    6  ls -latr
+    7  echo $?
+    8  man ps
+    9  ps aux
+   10  top -o %CPU
+   11  history > worksheet2.log

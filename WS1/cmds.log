@@ -1,117 +1,22 @@
-    1  ls
-    2  ./autorun.sh
-    3  sudo apt install gcc
-    4  sudo apt install make
-    5  sudo snap install clion --classic
-    6  sudo nano /etc/inputrc
-    7  cd /Documents
-    8  cd \Documentsls
-    9  cd Documents/
-   10  cd ./Documents/
-   11  cd ~
-   12  cd Documents/
-   13  ls
-   14  cd cs149/
-   15  ls
-   16  ls -latr
-   17  git remote add origin https://github.com/Karan10120/OperatingSystems-CS149.git
-   18  git add README.md
-   19  ls
-   20  ls -latr
-   21  git add README.md
-   22  mkdir WS1
-   23  ls
-   24  cd Ws1
-   25  cd WS1/
-   26  git add .
-   27  git status
-   28  git pull origin main
-   29  git branch
-   30  git log
-   31  ls
-   32  cd ..
-   33  ls
-   34  clion zybook.c
-   35  ls
-   36  gcc -o zybook.c zybook
-   37  gcc -o zybook zybook.c
-   38  ls
-   39  cd WS1/
-   40  ls
-   41  ls -latr
-   42  cd ..
-   43  ls -latr
-   44  ./zybook
-   45  clion zybook
-   46  ls
-   47  cd Ws1
-   48  cd WS1
-   49  ls
-   50  cd ..
-   51  ls -latr
-   52  ls
-   53  touch zybook.c
-   54  ls
-   55  kate zybook.c
-   56  sudo apt install kate
-   57  kate zybook.c
-   58  gcc zybook.c -o zybook
-   59  ls
-   60  ./zybook
-   61  rm zybook.c
-   62  ls
-   63  rm zybook 
-   64  ls
-   65  cd WS1/
-   66  ls
-   67  ls -latr
-   68  ./zybook
-   69  ls
-   70  cd ..
-   71  ls
-   72  cd WS1/
-   73  ls -latr
-   74  ls
-   75  touch 1.15Lab.c 
-   76  ls
-   77  touch 1.16Lab.c 
-   78  touch 1.17Lab.c 
-   79  touch 1.18Lab.c 
-   80  touch 1.19Lab.c 
-   81  touch 1.20Lab.c 
-   82  la
-   83  ls
-   84  kate 1.15Lab.c 
-   85  la
-   86  ls
-   87  kate 1.16Lab.c 
-   88  kate 1.17Lab.c 
-   89  kate 1.87Lab.c 
-   90  ls
-   91  la
-   92  kate 1.17Lab.c 
-   93  kate 1.18Lab.c 
-   94  kate 1.19Lab.c 
-   95  kate 1.20Lab.c 
-   96  la
-   97  gcc 1.15Lab.c -o 1.15Lab
-   98  ls
-   99  la
-  100  gcc 1.16Lab.c -o 1.16Lab
-  101  gcc 1.17Lab.c -o 1.17Lab
-  102  gcc 1.18Lab.c -o 1.18Lab
-  103  gcc 1.19Lab.c -o 1.19Lab
-  104  gcc 1.20Lab.c -o 1.20Lab
-  105  ls
-  106  la
-  107  ls-latr
-  108  ls -latr
-  109  ls
-  110  ./1.15Lab 
-  111  ./1.16Lab 
-  112  ./1.17Lab 
-  113  ./1.18Lab 
-  114  ./1.19Lab 
-  115  ./1.20Lab 
-  116  history > cmds.log *.c
-  117  history > cmds.log
+    1  pwd
+    2  cd ~
+    3  cd Desktop
+    4  ls -latr
+    5  mkdir cs149
+    6  cd cs149
+    7  git init
+    8  git remote add origin https://github.com/Karan10120/OperatingSystems-CS149.git
+   
+    #  Removed user info
+
+    9  git config --global user.email
+   10  git config --global user.name
+   11  mkdir WS1
+   12  cd WS1
+   13  git add .
+   14  wget -O out.pdf https://tinyurl.com/yy94jltt
+   15  ls -latr
+
+    #  PDF downloaded is a diagram of pre-requisites for SJSU's BSCS program
+
+   16  history > cmds.log
