@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int main( ) {
-    FILE *fp = fopen("names.txt", "r");
+int main(int argc, char *argv[]) {
+    FILE *fp = fopen(argv[1], "r");
     if (fp == NULL) {
         printf("cannot open file\n");
         exit(1);
@@ -15,7 +15,7 @@ int main( ) {
         if (line[0] ==  '\n') {
             fprintf(stderr, "Warning - Line %d is empty.\n", count);
         } else {
-            printf("%s", line);
+            //adding array
         }
         count++;
     }
