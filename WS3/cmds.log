@@ -1,0 +1,11 @@
+  1  cd Documents/cs149/WS3/
+  2  touch 4.14Lab.c && kate 4.14Lab.c
+  3  touch 4.16Lab.c && kate 4.16Lab.c
+  4  touch 5.16Lab.c && kate 5.16Lab.c
+  5  touch 5.17Lab.c && kate 5.17Lab.c
+  6  touch 5.18Lab.c && kate 5.18Lab.c
+  7  touch 5.21Lab.c && kate 5.21Lab.c
+  8  touch 5.22Lab.c && kate 5.22Lab.c
+  9  touch 5.23Lab.c && kate 5.23Lab.c
+  10  ls -latr
+  11  history > cmds.log
