@@ -1,0 +1,11 @@
+    1  wget https://github.com/torvalds/linux/archive/master.zip
+    2  unzip master.zip 
+    3  cd linux-master
+    4  pwd
+    5  alias l='ls -latr'
+    6  l
+    7  find . -name mem.c
+    8  find . -name mem.c | xargs head
+    9  find . -name mem.c | xargs grep 86
+   10  cd ..
+   11  history > worksheet3.log 
