@@ -27,6 +27,11 @@
 
 int main(int argc, char *argv[]) {
 
+    //checks if no file or other parameters are specified
+    if (argc < 2) {
+        return(0);
+    }
+
     //checks if file is inputted and opens if file exists
     FILE *fp = fopen(argv[1], "r");
     if (fp == NULL) {
