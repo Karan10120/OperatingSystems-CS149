@@ -1,0 +1,15 @@
+    1  wget http://www.apuebook.com/src.3e.tar.gz
+    2  gunzip src.3e.tar.gz 
+    3  tar xvf src.3e.tar 
+    4  cd apue.3e/proc/
+    5  make all
+    6  ./fork1 && ./fork2
+    7  pwd
+    8  pstree
+    9  ps -a -f -x
+   10  ps -a -f -x | more
+   11  top
+   12  man kill
+   13  echo $?
+   14  echo $$
+   15  history > ~/Desktop/OperatingSystems-CS149/WS4/worksheeet4.log
