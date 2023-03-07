@@ -113,10 +113,19 @@ int main(int argc, char *argv[]) {
             my_data totalcounts[100]={ { '\0', 0 } };
             int nameIndex = 0;
             close(fd[1]);
+
+            printf("\n");
+
             // loops for all child process files
-            for (int l = 1; l < argc; l++) {
+            for (int l = 1; l < 3; l++) {
                 read(fd[0], namecounts, sizeof(my_data)*100);
 
+                for (int k = 0; k < 100; k++) {
+                    if (namecounts[k].count != 0) {
+                        printf("%s: %d\n", namecounts[k].name, namecounts[k].count);
+                    }
+                }
+                /*
                 int found = 0;
                 //Loops for all names in array
                 //This for loop loops through the array name until a match is seen
@@ -135,13 +144,11 @@ int main(int argc, char *argv[]) {
                     totalcounts[nameIndex].count = 1;
                     nameIndex++;
                 }
+                */
             }
 
 
-            for (int k = 0; k < 100; k++) {
-                printf("%s: %d\n", totalcounts[k].name, totalcounts[k].count);
-            }
-            exit(0);
+
         }
     }
     
