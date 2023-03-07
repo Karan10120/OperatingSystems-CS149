@@ -41,6 +41,11 @@ int main(int argc, char *argv[]) {
     if (argc < 2) {
         return(0);
     }
+
+
+    my_data totalcounts[100]={ { '\0', 0 } };
+    int nameIndex = 0;
+
     for (int i = 1; i < argc; i++) {
         int fd[2];
         if (pipe(fd) == -1) {
@@ -112,22 +117,39 @@ int main(int argc, char *argv[]) {
         } else { //parent process
             wait(NULL);
             my_data namecounts[100]={ { '\0', 0 } };
-            my_data totalcounts[100]={ { '\0', 0 } };
-            int nameIndex = 0;
             close(fd[1]);
 
             //printf("\n");
             int testCount = 0;
             // loops for all child process files
-            for (int l = 1; l < 2; l++) {
+            //for (int l = 1; l < 2; l++) {
+                printf("%d: ", getpid());
                 read(fd[0], namecounts, sizeof(my_data)*100);
 
                 printf("looping through to print: %d\n", testCount++);
                 for (int k = 0; k < 100; k++) {
-                    if (namecounts[k].count != 0) {
-                        printf("%s: %d\n", namecounts[k].name, namecounts[k].count);
+                    int found = 0;
+                    for (int j = 0; j < nameIndex; j++) {
+                        if (namecounts[k].count != 0) {
+                            if (strcmp(namecounts[k].name, totalcounts[j].name) == 0){
+                                totalcounts[j].count += namecounts[k].count;
+                                found = 1;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (found != 1) {
+                        strcpy(totalcounts[nameIndex].name, namecounts[k].name);
+                        totalcounts[nameIndex].count = namecounts[k].count;
+                        nameIndex++;
                     }
                 }
+                //break;
+
+
+
+
                 /*
                 int found = 0;
                 //Loops for all names in array
@@ -148,14 +170,18 @@ int main(int argc, char *argv[]) {
                     nameIndex++;
                 }
                 */
-            }
+            //}
 
 
 
         }
+
     }
     
-    
+    for (int w = 0; w < nameIndex; w++) {
+        printf("Index: %d %s: %d\n", w, totalcounts[w].name, totalcounts[w].count);
+    }
+
     // //define 100x30 array of characters and integers, integer count to keep track of array fill size
     // char names [100][31];
     // int counts [100];
