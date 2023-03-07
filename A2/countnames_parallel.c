@@ -35,6 +35,8 @@ typedef struct my_data {
 
 int main(int argc, char *argv[]) {
 
+    //test new line
+    printf("\n");
     //checks if no file or other parameters are specified
     if (argc < 2) {
         return(0);
@@ -54,7 +56,7 @@ int main(int argc, char *argv[]) {
             exit(0);
         } else if (pid == 0) {
             //child process
-            printf("%s\n", argv[i]);
+            //printf("%s\n", argv[i]);
             //checks if file is inputted and opens if file exists
             FILE *fp = fopen(argv[i], "r");
             if (fp == NULL) {
@@ -114,12 +116,13 @@ int main(int argc, char *argv[]) {
             int nameIndex = 0;
             close(fd[1]);
 
-            printf("\n");
-
+            //printf("\n");
+            int testCount = 0;
             // loops for all child process files
-            for (int l = 1; l < 3; l++) {
+            for (int l = 1; l < 2; l++) {
                 read(fd[0], namecounts, sizeof(my_data)*100);
 
+                printf("looping through to print: %d\n", testCount++);
                 for (int k = 0; k < 100; k++) {
                     if (namecounts[k].count != 0) {
                         printf("%s: %d\n", namecounts[k].name, namecounts[k].count);
