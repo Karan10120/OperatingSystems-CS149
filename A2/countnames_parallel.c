@@ -51,7 +51,9 @@ int main(int argc, char *argv[]) {
 
         if (pid < 0) {
             printf("fork failed");
+            exit(0);
         } else if (pid == 0) {
+            //child process
             printf("%s\n", argv[i]);
             //checks if file is inputted and opens if file exists
             FILE *fp = fopen(argv[i], "r");
@@ -60,9 +62,86 @@ int main(int argc, char *argv[]) {
                 exit(1);
             }
             // while loop
+
+            my_data namecounts[100]={ { '\0', 0 } };
+            //line buffer
+            char line[31];
+            //count of current line of file on
+            int lineCount = 1;
+            int nameIndex = 0;
+
+            //This while loop iterates through each line of the file
+            while (fgets(line, sizeof(line), fp) != NULL) {
+                //The if else block determines whether the current line in the file is blank or contains a name
+                if (line[0] ==  '\n') {
+                    fprintf(stderr, "Warning - Line %d is empty.\n", lineCount);
+                } else {
+                    //Removes trailing new line character from string
+                    line[strcspn(line, "\n")] = 0;
+                    int found = 0;
+
+                    //This for loop loops through the array name until a match is seen
+                    for (int j = 0; j < 100; j++) {
+                    //Check for match and increments unique name occurence, then for loop breaks
+                        if (strcmp(namecounts[j].name, line) == 0){
+                            namecounts[j].count++;
+                            found = 1;
+                            break;
+                        }
+                    }
+                    //Adds name to array if match is not found in array
+                    if (found != 1) {
+                        strcpy(namecounts[nameIndex].name, line);
+                        namecounts[nameIndex].count = 1;
+                        nameIndex++;
+                    }
+                }
+                lineCount++;
+            }
+            fclose(fp);
+
+
+
+            close(fd[0]);
+            write(fd[1], &namecounts, sizeof(my_data)*100);
+            close(fd[1]);
+
             exit(0);
-        } else {
+        } else { //parent process
             wait(NULL);
+            my_data namecounts[100]={ { '\0', 0 } };
+            my_data totalcounts[100]={ { '\0', 0 } };
+            int nameIndex = 0;
+            close(fd[1]);
+            // loops for all child process files
+            for (int l = 1; l < argc; l++) {
+                read(fd[0], namecounts, sizeof(my_data)*100);
+
+                int found = 0;
+                //Loops for all names in array
+                //This for loop loops through the array name until a match is seen
+                for (int m = 0; m < 100; m++) {
+
+                    //Check for match and increments unique name occurence, then for loop breaks
+                    if (strcmp(totalcounts[m].name, namecounts[l].name) == 0){
+                        totalcounts[m].count++;
+                        found = 1;
+                        break;
+                    }
+                }
+                //Adds name to array if match is not found in array
+                if (found != 1) {
+                    strcpy(totalcounts[nameIndex].name, namecounts[l].name);
+                    totalcounts[nameIndex].count = 1;
+                    nameIndex++;
+                }
+            }
+
+
+            for (int k = 0; k < 100; k++) {
+                printf("%s: %d\n", totalcounts[k].name, totalcounts[k].count);
+            }
+            exit(0);
         }
     }
     
