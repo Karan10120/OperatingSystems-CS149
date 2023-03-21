@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <string.h>
+#include <fcntl.h>
 
 #define MAX_COMMAND_LENGTH 30
 
@@ -11,6 +12,10 @@ int main() {
     char *args[100];
     pid_t pid;
     int status;
+    FILE *fp;
+    char filenameout[10], filenameerr[10];
+    int fd_out, fd_err;
+
 
     while (fgets(line, MAX_COMMAND_LENGTH, stdin) != NULL)
     {
@@ -28,15 +33,33 @@ int main() {
             printf("fork error");
             exit(1);
         } else if (pid == 0) { /* child */
+            // creating output and error files
+            // char filenameout[10], filenameerr[10];
+            // int fd_out, fd_err;
+
+
+            sprintf(filenameout, "%d.out", getpid()); 
+            fd_out = open(filenameout, O_RDWR | O_CREAT | O_APPEND, 0777);
+            dup2(fd_out, 1);
+
+            close(fd_out);
+            close(fd_err);
+
             execvp(args[0], args);
+
+            sprintf(filenameerr, "%d.err", getpid());
+            fd_err = open(filenameerr, O_RDWR | O_CREAT | O_APPEND, 0777);
+            dup2(fd_err, 2);
+            
             printf("couldn't execute: %s\n", args[0]);
             exit(2);
         }
         /* parent */
-        status = wait(NULL);
-        while (status != -1) {
-            fprintf(stderr, "\nexited with exit code = %d\n", WEXITSTATUS(status));
-            status = wait(NULL);
+        while ((pid = wait(&status)) > 0) {
+            fp = fopen(filenameerr, "a");
+            fprintf(fp, "\nexited with exit code = %d\n", WEXITSTATUS(status));
+            // status = wait(NULL);
+            fclose(fp);
         }
     }
     exit(0);
