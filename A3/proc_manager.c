@@ -15,7 +15,7 @@ int main() {
     FILE *fp;
     char filenameout[10], filenameerr[10];
     int fd_out, fd_err;
-    int cmd_count = 1;
+    int cmd_count = 0;
 
     // reads through the file line by line / until interrupt signal
     while (fgets(line, MAX_COMMAND_LENGTH, stdin) != NULL)
@@ -29,31 +29,22 @@ int main() {
             arg_count++;
         }
         args[arg_count] = NULL;
+        // increment command line count;
+        cmd_count++;
 
         if ((pid = fork()) < 0) {
             printf("fork error");
             exit(1);
 
         } else if (pid == 0) { //child
-            // creating output and error files
-            // char filenameout[10], filenameerr[10];
-            // int fd_out, fd_err;
 
             sprintf(filenameout, "%d.out", getpid()); 
             fd_out = open(filenameout, O_RDWR | O_CREAT | O_APPEND, 0777);
             dup2(fd_out, 1);
 
-            printf("Starting command %d: child %d pid of parent %d\n", cmd_count++, getpid(), getppid());
+            printf("Starting command %d: child %d pid of parent %d\n", cmd_count, getpid(), getppid());
             fflush(stdout);
             close(fd_out);
-
-            //fflush(stdout);
-            //printf("About to run:");
-            //fflush(stdout);
-
-            //for (int i = 0; i < (sizeof(args)/sizeof(args[0])); i++){
-            //printf("%d Parameter: %s", i, args[i]);
-            //}
 
             execvp(args[0], args);
             // TODO: increment cmd_count somewhere
