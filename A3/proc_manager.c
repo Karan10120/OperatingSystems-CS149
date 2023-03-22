@@ -46,19 +46,22 @@ int main() {
             fflush(stdout);
             close(fd_out);
 
+            sprintf(filenameerr, "%d.err", getpid());
+            fd_err = open(filenameerr, O_RDWR | O_CREAT | O_APPEND, 0777);
+            dup2(fd_err, 2);
+
             execvp(args[0], args);
-            // TODO: increment cmd_count somewhere
+            // TODO:
             //       print couldn't execute to .err instead of .out
             //       fix print starting command line to .out file
             //fprintf(fp, "starting command %d: child %d PID of parent %d", cmd_count, getpid(), getppid());
         //Problem: blank line enter is returning a WIFSIGNALED, causing it to print Killed with sig statement
-            sprintf(filenameerr, "%d.err", getpid());
-            fd_err = open(filenameerr, O_RDWR | O_CREAT | O_APPEND, 0777);
-            dup2(fd_err, 2);
-            close(fd_err);
+
+
             
-            printf("Could not execute command: %s\n", args[0]);
+            fprintf(stderr, "Could not execute command: %s\n", args[0]);
             fflush(stderr);
+            close(fd_err);
             exit(2);
         }
 
