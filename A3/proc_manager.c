@@ -8,15 +8,15 @@
 #define MAX_COMMAND_LENGTH 30
 
 int main() {
-    char line[30];
-    char *args[100];
+    char line[MAX_COMMAND_LENGTH + 1];
+    char *args[100];    // assume 100 commands max
     pid_t pid;
     int status;
     FILE *fp;
     char filenameout[10], filenameerr[10];
     int fd_out, fd_err;
 
-
+    // reads through the file line by line / until interrupt signal
     while (fgets(line, MAX_COMMAND_LENGTH, stdin) != NULL)
     {
         line[strcspn(line, "\n")] = 0;
@@ -41,21 +41,21 @@ int main() {
             sprintf(filenameout, "%d.out", getpid()); 
             fd_out = open(filenameout, O_RDWR | O_CREAT | O_APPEND, 0777);
             dup2(fd_out, 1);
-
             close(fd_out);
-            close(fd_err);
 
             execvp(args[0], args);
 
             sprintf(filenameerr, "%d.err", getpid());
             fd_err = open(filenameerr, O_RDWR | O_CREAT | O_APPEND, 0777);
             dup2(fd_err, 2);
+            close(fd_err);
             
             printf("couldn't execute: %s\n", args[0]);
             exit(2);
         }
         /* parent */
         while ((pid = wait(&status)) > 0) {
+            sprintf(filenameerr, "%d.err", pid);
             fp = fopen(filenameerr, "a");
             fprintf(fp, "\nexited with exit code = %d\n", WEXITSTATUS(status));
             // status = wait(NULL);
