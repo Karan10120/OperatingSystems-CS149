@@ -20,6 +20,7 @@ int main() {
     // reads through the file line by line / until interrupt signal
     while (fgets(line, MAX_COMMAND_LENGTH, stdin) != NULL)
     {
+        /*
         line[strcspn(line, "\n")] = 0;
 
         int arg_count = 0;
@@ -29,14 +30,28 @@ int main() {
             arg_count++;
         }
         args[arg_count] = NULL;
-        // increment command line count;
+        */
+        //increment command line count;
         cmd_count++;
+
 
         if ((pid = fork()) < 0) {
             printf("fork error");
             exit(1);
 
         } else if (pid == 0) { //child
+
+            //testing
+            line[strcspn(line, "\n")] = 0;
+
+            int arg_count = 0;
+            args[arg_count++] = strtok(line, " ");
+            while ( args[arg_count] != NULL) {
+                args[arg_count] = strtok(NULL, " ");
+                arg_count++;
+            }
+            args[arg_count] = NULL;
+            //testing
 
             sprintf(filenameout, "%d.out", getpid()); 
             fd_out = open(filenameout, O_RDWR | O_CREAT | O_APPEND, 0777);
@@ -51,13 +66,8 @@ int main() {
             dup2(fd_err, 2);
 
             execvp(args[0], args);
-            // TODO:
-            //       print couldn't execute to .err instead of .out
-            //       fix print starting command line to .out file
-            //fprintf(fp, "starting command %d: child %d PID of parent %d", cmd_count, getpid(), getppid());
+            // TODO
         //Problem: blank line enter is returning a WIFSIGNALED, causing it to print Killed with sig statement
-
-
             
             fprintf(stderr, "Could not execute command: %s\n", args[0]);
             fflush(stderr);
@@ -79,7 +89,7 @@ int main() {
 
             sprintf(filenameout, "%d.out", pid);
             fp = fopen(filenameout, "a");
-            fprintf(fp, "Finished child %d PID of parent %d\n", pid, getpid());
+            fprintf(fp, "Finished child %d pid of parent %d\n", pid, getpid());
             fclose(fp);
         }
     }
