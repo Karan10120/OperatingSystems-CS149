@@ -3,16 +3,8 @@
 #include <string.h>
 #include <stdarg.h>
 
-/**
- *//CS149 assignment#4 helper code.
- *// See the TODO's in the comments below! You need to implement those.
-**/
 
-/**
- *// TRACE_NODE_STRUCT is a linked list of
- *// pointers to function identifiers
- *// TRACE_TOP is the head of the list is the top of the stack
-**/
+
 struct TRACE_NODE_STRUCT {
   char* functionid;                // ptr to function identifier (a function name)
   struct TRACE_NODE_STRUCT* next;  // ptr to next frama
@@ -127,6 +119,7 @@ char* PRINT_TRACE()
 void* REALLOC(void* p,int t,char* file,int line)
 {
 	p = realloc(p,t);
+    printf("File %s, line %d, function %s reallocated the memory segment at address %p to a new size %d\n", file, line, PRINT_TRACE(), p, t);
 	return p;
 }
 
@@ -141,6 +134,7 @@ void* MALLOC(int t,char* file,int line)
 {
 	void* p;
 	p = malloc(t);
+    printf("File %s, line %d, function %s allocated new memory segment at address %p to size %d\n", file, line, PRINT_TRACE(), p, t);
 	return p;
 }
 
@@ -154,6 +148,7 @@ void* MALLOC(int t,char* file,int line)
 void FREE(void* p,char* file,int line)
 {
 	free(p);
+    printf("File %s, line %d, function %s deallocated the memory segment at address %p\n", file, line, PRINT_TRACE(), p);
 }
 
 #define realloc(a,b) REALLOC(a,b,__FILE__,__LINE__)
