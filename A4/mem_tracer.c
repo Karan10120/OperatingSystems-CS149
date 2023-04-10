@@ -2,24 +2,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <fcntl.h>
 
-/**
- */CS149 assignment#4 helper code.
- // See the TODO's in the comments below! You need to implement those.
+#define MAX_COMMAND_LENGTH 100
 
-
-/**
- *// TRACE_NODE_STRUCT is a linked list of
- *// pointers to function identifiers
- *// TRACE_TOP is the head of the list is the top of the stack
-**/
 struct TRACE_NODE_STRUCT {
   char* functionid;                // ptr to function identifier (a function name)
   struct TRACE_NODE_STRUCT* next;  // ptr to next frama
 };
 typedef struct TRACE_NODE_STRUCT TRACE_NODE;
 static TRACE_NODE* TRACE_TOP = NULL;       // ptr to the top of the stack
-
 
 /* --------------------------------*/
 /* function PUSH_TRACE */
@@ -127,6 +121,7 @@ char* PRINT_TRACE()
 void* REALLOC(void* p,int t,char* file,int line)
 {
 	p = realloc(p,t);
+    printf("File %s, line %d, function %s reallocated the memory segment at address %p to a new size %d\n", file, line, PRINT_TRACE(), p, t);
 	return p;
 }
 
@@ -141,6 +136,7 @@ void* MALLOC(int t,char* file,int line)
 {
 	void* p;
 	p = malloc(t);
+    printf("File %s, line %d, function %s allocated new memory segment at address %p to size %d\n", file, line, PRINT_TRACE(), p, t);
 	return p;
 }
 
@@ -154,87 +150,105 @@ void* MALLOC(int t,char* file,int line)
 void FREE(void* p,char* file,int line)
 {
 	free(p);
+    printf("File %s, line %d, function %s deallocated the memory segment at address %p\n", file, line, PRINT_TRACE(), p);
 }
 
 #define realloc(a,b) REALLOC(a,b,__FILE__,__LINE__)
 #define malloc(a) MALLOC(a,__FILE__,__LINE__)
 #define free(a) FREE(a,__FILE__,__LINE__)
 
+struct node {
+  char* line;               // ptr to input line
+  int line_num;             // in order line was read
+  struct node* next;        // ptr to next frama
+};
+static struct node* head = NULL;       // ptr to the top of the stack
+static struct node* tail = NULL;       // ptr to the end of the stack
 
-// -----------------------------------------
-// function add_column will add an extra column to a 2d array of ints.
-// This function is intended to demonstrate how memory usage tracing of realloc is done
-// Returns the number of new columns (updated)
-int add_column(int** array,int rows,int columns)
-{
-	PUSH_TRACE("add_column");
-	int i;
+// assigns a line num and input pointer to a new node at the end of a linked list
+void add_node(int line_num, char* input) {
+    PUSH_TRACE("add_node");
+    struct node* new_node = (struct node*) malloc(sizeof(struct node));
+    new_node->line_num = line_num;
+    new_node->line = input;
+    new_node->next = NULL;
 
-	for(i=0; i<rows; i++) {
-	 array[i]=(int*) realloc(array[i],sizeof(int)*(columns+1));
-	 array[i][columns]=10*i+columns;
-	}//for
-	POP_TRACE();
-        return (columns+1);
-}// end add_column
+    // checking if list is empty
+    if (head == NULL) {
+        new_node->next = NULL;
+        head = new_node;
+    }
+    tail->next = new_node;
+    tail = new_node;
+    POP_TRACE();
+}
 
+void print_nodes(struct node* current_node) {
+    PUSH_TRACE("print_nodes");
+    printf("Node %d: %s\n", current_node->line_num, current_node->line);
+    fflush(stdout);
+    if (current_node->next != NULL) {
+        print_nodes(current_node->next);
+    }
+    POP_TRACE();
+}
 
-// ------------------------------------------
-// function make_extend_array
-// Example of how the memory trace is done
-// This function is intended to demonstrate how memory usage tracing of malloc and free is done
-void make_extend_array()
-{
-       PUSH_TRACE("make_extend_array");
-	int i, j;
-        int **array;
-        int ROW = 4;
-        int COL = 3;
+void free_linked_list(struct node* head_node) {
+    PUSH_TRACE("free_linked_list");
+    struct node* current = head_node;
+    while(current != tail) {
+        struct node* temp = current->next;
+        free(current);
+        current = temp;
+    }
+    free(tail);
+    POP_TRACE();
+}
 
-        //make array
-	array = (int**) malloc(sizeof(int*)*4);  // 4 rows
-	for(i=0; i<ROW; i++) {
-	 array[i]=(int*) malloc(sizeof(int)*3);  // 3 columns
-	 for(j=0; j<COL; j++)
-	  array[i][j]=10*i+j;
-	}//for
+int main() {
+    PUSH_TRACE("main");
+    char **lines = malloc(10 * sizeof(char*));
+    char input[100];
+    int line_count = 0;
+    int array_capacity = 10;
+    FILE *fp;
+    int fd_out;
 
-        //display array
-	for(i=0; i<ROW; i++)
-	 for(j=0; j<COL; j++)
-	  printf("array[%d][%d]=%d\n",i,j,array[i][j]);
+    fd_out = open("memtrace.out", O_RDWR | O_CREAT | O_APPEND, 0777);
+    dup2(fd_out, 1);
 
-	// and a new column
-	int NEWCOL = add_column(array,ROW,COL);
+    // reads through the file line by line or until EOF signal
+    while (fgets(input, MAX_COMMAND_LENGTH, stdin) != NULL) {
 
-	// now display the array again
-        for(i=0; i<ROW; i++)
-	 for(j=0; j<NEWCOL; j++)
-	  printf("array[%d][%d]=%d\n",i,j,array[i][j]);
+        // increment command line count
+        line_count++;
+        // removes new line character from line
+        input[strcspn(input, "\n")] = 0;
 
-	 //now deallocate it
-	 for(i=0; i<ROW; i++)
-		 free((void*)array[i]);
-	 free((void*)array);
+        // store string into a pointer
+        char *line_ptr = (char*) malloc(strlen(input) + 1);
+        line_ptr = input;
 
-	 POP_TRACE();
-         return;
-}//end make_extend_array
+        // check to see if we need to reallocate memory for line pointer array
+        if (line_count > array_capacity) {
+            array_capacity *= 2;
+            lines = realloc(lines, array_capacity * sizeof(char*));
+        }
+        lines[line_count] = line_ptr;
+        line_count++;
+        printf("array[%d] = \"%s\"", line_count - 1, line_ptr);
+        fflush(stdout);
 
+        // creating node
+        add_node(line_count, line_ptr);
+        free(line_ptr);
+    }
 
-// ----------------------------------------------
-// function main
-int main()
-{
-        PUSH_TRACE("main");
+    print_nodes(head);
+    free_linked_list(head);
+    free(lines);
 
-	make_extend_array();
-
-        POP_TRACE();
-        return(0);
-}// end main
-
-
-
-
-
+    close(fd_out);
+    POP_TRACE();
+    exit(0);
+}
