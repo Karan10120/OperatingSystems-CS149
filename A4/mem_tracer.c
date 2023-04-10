@@ -178,7 +178,9 @@ void add_node(int line_num, char* input) {
         new_node->next = NULL;
         head = new_node;
     }
-    tail->next = new_node;
+    if (tail != NULL) {
+        tail->next = new_node;
+    }
     tail = new_node;
     POP_TRACE();
 }
@@ -227,21 +229,20 @@ int main() {
 
         // store string into a pointer
         char *line_ptr = (char*) malloc(strlen(input) + 1);
-        line_ptr = input;
+        strcpy(line_ptr, input);
 
         // check to see if we need to reallocate memory for line pointer array
         if (line_count > array_capacity) {
             array_capacity *= 2;
             lines = realloc(lines, array_capacity * sizeof(char*));
         }
-        lines[line_count] = line_ptr;
-        line_count++;
+        lines[line_count-1] = line_ptr;
         printf("array[%d] = \"%s\"", line_count - 1, line_ptr);
         fflush(stdout);
 
         // creating node
         add_node(line_count, line_ptr);
-        free(line_ptr);
+        // free(line_ptr);
     }
 
     print_nodes(head);
