@@ -1,3 +1,13 @@
+/**
+ * Description: This program stores the commands in an array and traces the
+ * memory usage. It then prints out all the memory usage and contents that 
+ * was read in a file called memtrace.out.
+ * Author names: Luc Tang, Karan Gandhi
+ * Author emails: luc.tang@sjsu.edu, karan.gandhi@sjsu.edu
+ * Last modified date: 04/10/2023
+ * Creation date: 04/07/2023
+ **/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,16 +25,12 @@ struct TRACE_NODE_STRUCT {
 typedef struct TRACE_NODE_STRUCT TRACE_NODE;
 static TRACE_NODE* TRACE_TOP = NULL;       // ptr to the top of the stack
 
-/* --------------------------------*/
-/* function PUSH_TRACE */
-/* 
+/* function PUSH_TRACE
  * The purpose of this stack is to trace the sequence of function calls,
  * just like the stack in your computer would do. 
  * The "global" string denotes the start of the function call trace.
  * The char *p parameter is the name of the new function that is added to the call trace.
- * See the examples of calling PUSH_TRACE and POP_TRACE below
- * in the main, make_extend_array, add_column functions.
-**/
+ */
 void PUSH_TRACE(char* p)          // push p on the stack
 {
   TRACE_NODE* tnode;
@@ -54,32 +60,27 @@ void PUSH_TRACE(char* p)          // push p on the stack
   if (tnode==NULL) {
     printf("PUSH_TRACE: memory allocation error\n");
     exit(1);
-  }//if
+  }
 
   tnode->functionid=p;
   tnode->next = TRACE_TOP;  // insert fnode as the first in the list
   TRACE_TOP=tnode;          // point TRACE_TOP to the first node
+}
 
-}/*end PUSH_TRACE*/
-
-/* --------------------------------*/
 /* function POP_TRACE */
 /* Pop a function call from the stack */
-void POP_TRACE()    // remove the op of the stack
+void POP_TRACE()    // remove the top of the stack
 {
   TRACE_NODE* tnode;
   tnode = TRACE_TOP;
   TRACE_TOP = tnode->next;
   free(tnode);
+}
 
-}/*end POP_TRACE*/
-
-
-
-/* ---------------------------------------------- */
-/* function PRINT_TRACE prints out the sequence of function calls that are on the stack at this instance */
-/* For example, it returns a string that looks like: global:funcA:funcB:funcC. */
-/* Printing the function call sequence the other way around is also ok: funcC:funcB:funcA:global */
+/* function PRINT_TRACE prints out the sequence of function calls that are on the stack at this instance
+ * For example, it returns a string that looks like: global:funcA:funcB:funcC.
+ * Printing the function call sequence the other way around is also ok: funcC:funcB:funcA:global
+ */
 char* PRINT_TRACER()
 {
   int depth = 50; //A max of 50 levels in the stack will be combined in a string for printing out.
@@ -93,15 +94,15 @@ char* PRINT_TRACER()
   }
 
   /* peek at the depth(50) top entries on the stack, but do not
-     go over 100 chars and do not go over the bottom of the
-     stack */
+   * go over 100 chars and do not go over the bottom of the
+   * stack 
+   */
 
   sprintf(buf,"%s",TRACE_TOP->functionid);
   length = strlen(buf);                  // length of the string so far
-  for(i=1, tnode=TRACE_TOP->next;
-                        tnode!=NULL && i < depth;
-                                  i++,tnode=tnode->next) {
-    j = strlen(tnode->functionid);             // length of what we want to add
+  // going through all the stack traces to print function calls
+  for(i=1, tnode=TRACE_TOP->next; tnode!=NULL && i < depth; i++,tnode=tnode->next) {
+    j = strlen(tnode->functionid);       // length of what we want to add
     if (length+j+1 < 100) {              // total length is ok
       sprintf(buf+length,":%s",tnode->functionid);
       length += j+1;
@@ -109,48 +110,30 @@ char* PRINT_TRACER()
       break;
   }
   return buf;
-} /*end PRINT_TRACE*/
+}
 
-// -----------------------------------------
-// function REALLOC calls realloc
-// TODO REALLOC should also print info about memory usage.
-// TODO For this purpose, you need to add a few lines to this function.
-// For instance, example of print out:
-// "File mem_tracer.c, line X, function F reallocated the memory segment at address A to a new size S"
-// Information about the function F should be printed by printing the stack (use PRINT_TRACE)
+// function REALLOC calls realloc and prints info about memory usage.
 void* REALLOC(void* p,int t,char* file,int line)
 {
 	p = realloc(p,t);
-    printf("File %s, line %d, function %s reallocated the memory segment at address %p to a new size %d\n", file, line, PRINT_TRACER(), p, t);
+    printf("File=%s, line=%d, function=%s, reallocated the memory segment at address %p to a new size %d\n", file, line, PRINT_TRACER(), p, t);
 	return p;
 }
 
-// -------------------------------------------
-// function MALLOC calls malloc
-// TODO MALLOC should also print info about memory usage.
-// TODO For this purpose, you need to add a few lines to this function.
-// For instance, example of print out:
-// "File mem_tracer.c, line X, function F allocated new memory segment at address A to size S"
-// Information about the function F should be printed by printing the stack (use PRINT_TRACE)
+// function MALLOC calls malloc and prints info about memory usage.
 void* MALLOC(int t,char* file,int line)
 {
 	void* p;
 	p = malloc(t);
-    printf("File %s, line %d, function %s allocated new memory segment at address %p to size %d\n", file, line, PRINT_TRACER(), p, t);
+    printf("File=%s, line=%d, function=%s, allocated new memory segment at address %p to size %d\n", file, line, PRINT_TRACER(), p, t);
 	return p;
 }
 
-// ----------------------------------------------
-// function FREE calls free
-// TODO FREE should also print info about memory usage.
-// TODO For this purpose, you need to add a few lines to this function.
-// For instance, example of print out:
-// "File mem_tracer.c, line X, function F deallocated the memory segment at address A"
-// Information about the function F should be printed by printing the stack (use PRINT_TRACE)
+// function FREE calls free and prints info about memory usage.
 void FREE(void* p,char* file,int line)
 {
-	free(p);
-    printf("File %s, line %d, function %s deallocated the memory segment at address %p\n", file, line, PRINT_TRACER(), p);
+    printf("File=%s, line=%d, function=%s, deallocated the memory segment at address %p\n", file, line, PRINT_TRACER(), p);
+    free(p);
 }
 
 #define realloc(a,b) REALLOC(a,b,__FILE__,__LINE__)
@@ -180,6 +163,7 @@ void add_node(int line_num, char* input) {
         new_node->next = NULL;
         head = new_node;
     }
+    // initializing tail if it doesn't exist
     if (tail != NULL) {
         tail->next = new_node;
     }
@@ -187,34 +171,45 @@ void add_node(int line_num, char* input) {
     POP_TRACE();
 }
 
+// printing all input lines from stdin by iterating through linked list
 void print_nodes(struct node* current_node) {
     PUSH_TRACE("print_nodes");
     printf("Node %d: %s\n", current_node->line_num, current_node->line);
     fflush(stdout);
+    // recursive call if end of linked list is not reached
     if (current_node->next != NULL) {
         print_nodes(current_node->next);
     }
     POP_TRACE();
 }
 
+// frees up memory taken up by the linked list storing lines
 void free_linked_list(struct node* head_node) {
     PUSH_TRACE("free_linked_list");
     struct node* current = head_node;
+    // frees up node and continues until tail is reached
     while(current != tail) {
         struct node* temp = current->next;
         free(current);
         current = temp;
     }
+    // frees up memory taken by tail
     free(tail);
     POP_TRACE();
 }
 
-void cleanup_trace() {
-    if (TRACE_TOP != NULL) {
-        free(TRACE_TOP);
-    }
-}
-
+/**
+ * This function reads from stdin line by line and adds commands to an array
+ * and linked list.
+ * Assumption:
+ * 1. Each command is at most 100 characters.
+ * 2. Each line contains a new command.
+ * 3. Each command is separated by a new line.
+ * 4. Input file contains only valid characters.
+ *
+ * Input parameters: stdin
+ * Returns: memtrace.out file 
+**/
 int main() {
     PUSH_TRACE("main");
     char **lines = malloc(10 * sizeof(char*));
@@ -224,8 +219,6 @@ int main() {
     FILE *fp;
     int fd_out;
     char *filename = "memtrace.out";
-
-    remove(filename);
 
     fd_out = open(filename, O_RDWR | O_CREAT | O_APPEND, 0777);
     dup2(fd_out, 1);
@@ -258,15 +251,16 @@ int main() {
 
     print_nodes(head);
 
+    // frees up memory used by array
     for (int i = 0; i < line_count; i++) {
         free(lines[i]);
     }
-
-
-    free_linked_list(head);
     free(lines);
 
+    free_linked_list(head);
+    
     close(fd_out);
+    // frees main and global trace nodes
     POP_TRACE();
     POP_TRACE();
     exit(0);
