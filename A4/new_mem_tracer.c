@@ -187,10 +187,23 @@ void freeListNodes(ListNode *node){
 //     POP_TRACE();
 // }
 
+void addArray(char **array, int index, char *string, int size){
+
+  array[index] = (char*)malloc(sizeof(char)* size);
+  strcpy(array[index], string);
+}
+
+void freeArray(char **array, int size){
+
+  for(int i = 0; i < size; i++) {
+    free(array[i]);
+  }
+  free(array);
+}
 
 int main() {
     char *line = NULL;
-    char **array[10];
+    char **array = malloc(10 * sizeof(char *));
     size_t lineSize = 0;
     ssize_t read;
 
@@ -206,10 +219,12 @@ int main() {
 
         line[strcspn(line, "\n")] = 0;
         addNodes(line, count, size);
+        addArray(array, count, line, size);   //why not also taking in size of line?
         count++;
 
     }
     free(line);
+    freeArray(array, count);
     //printf("going into printNodes\n");
     printNodes(head);
     freeListNodes(head);
