@@ -196,9 +196,9 @@ int main() {
 
     PUSH_TRACE("main");
 
-//     for(int i = 0; i < sizeof(array); i++) {
-//         array[i] = NULL;
-//     }
+    for(int i = 0; i < (sizeof(array) / sizeof(char *)); i++) {
+        array[i] = NULL;
+    }
 
     int count = 0;
     int size;
