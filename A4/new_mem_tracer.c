@@ -209,9 +209,11 @@ int main() {
         count++;
 
     }
+    free(line);
     //printf("going into printNodes\n");
     printNodes(head);
     freeListNodes(head);
+  POP_TRACE();
   POP_TRACE();
   return(0);
 
