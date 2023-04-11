@@ -80,7 +80,7 @@ void POP_TRACE()    // remove the op of the stack
 /* function PRINT_TRACE prints out the sequence of function calls that are on the stack at this instance */
 /* For example, it returns a string that looks like: global:funcA:funcB:funcC. */
 /* Printing the function call sequence the other way around is also ok: funcC:funcB:funcA:global */
-char* PRINT_TRACE()
+char* PRINT_TRACER()
 {
   int depth = 50; //A max of 50 levels in the stack will be combined in a string for printing out.
   int i, length, j;
@@ -121,7 +121,7 @@ char* PRINT_TRACE()
 void* REALLOC(void* p,int t,char* file,int line)
 {
 	p = realloc(p,t);
-    printf("File %s, line %d, function %s reallocated the memory segment at address %p to a new size %d\n", file, line, PRINT_TRACE(), p, t);
+    printf("File %s, line %d, function %s reallocated the memory segment at address %p to a new size %d\n", file, line, PRINT_TRACER(), p, t);
 	return p;
 }
 
@@ -136,7 +136,7 @@ void* MALLOC(int t,char* file,int line)
 {
 	void* p;
 	p = malloc(t);
-    printf("File %s, line %d, function %s allocated new memory segment at address %p to size %d\n", file, line, PRINT_TRACE(), p, t);
+    printf("File %s, line %d, function %s allocated new memory segment at address %p to size %d\n", file, line, PRINT_TRACER(), p, t);
 	return p;
 }
 
@@ -150,24 +150,26 @@ void* MALLOC(int t,char* file,int line)
 void FREE(void* p,char* file,int line)
 {
 	free(p);
-    printf("File %s, line %d, function %s deallocated the memory segment at address %p\n", file, line, PRINT_TRACE(), p);
+    printf("File %s, line %d, function %s deallocated the memory segment at address %p\n", file, line, PRINT_TRACER(), p);
 }
 
 #define realloc(a,b) REALLOC(a,b,__FILE__,__LINE__)
 #define malloc(a) MALLOC(a,__FILE__,__LINE__)
 #define free(a) FREE(a,__FILE__,__LINE__)
 
+// line input nodes
 struct node {
   char* line;               // ptr to input line
   int line_num;             // in order line was read
   struct node* next;        // ptr to next frama
 };
+
 static struct node* head = NULL;       // ptr to the top of the stack
 static struct node* tail = NULL;       // ptr to the end of the stack
 
 // assigns a line num and input pointer to a new node at the end of a linked list
 void add_node(int line_num, char* input) {
-    PUSH_TRACE("add_node");
+    PUSH_TRACE("addNode");
     struct node* new_node = (struct node*) malloc(sizeof(struct node));
     new_node->line_num = line_num;
     new_node->line = input;
@@ -207,6 +209,12 @@ void free_linked_list(struct node* head_node) {
     POP_TRACE();
 }
 
+void cleanup_trace() {
+    if (TRACE_TOP != NULL) {
+        free(TRACE_TOP);
+    }
+}
+
 int main() {
     PUSH_TRACE("main");
     char **lines = malloc(10 * sizeof(char*));
@@ -215,8 +223,11 @@ int main() {
     int array_capacity = 10;
     FILE *fp;
     int fd_out;
+    char *filename = "memtrace.out";
 
-    fd_out = open("memtrace.out", O_RDWR | O_CREAT | O_APPEND, 0777);
+    remove(filename);
+
+    fd_out = open(filename, O_RDWR | O_CREAT | O_APPEND, 0777);
     dup2(fd_out, 1);
 
     // reads through the file line by line or until EOF signal
@@ -246,10 +257,17 @@ int main() {
     }
 
     print_nodes(head);
+
+    for (int i = 0; i < line_count; i++) {
+        free(lines[i]);
+    }
+
+
     free_linked_list(head);
     free(lines);
 
     close(fd_out);
+    POP_TRACE();
     POP_TRACE();
     exit(0);
 }
