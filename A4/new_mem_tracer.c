@@ -114,8 +114,9 @@ void* MALLOC(int t,char* file,int line)
 
 void FREE(void* p,char* file,int line)
 {
-	free(p);
     printf("File=%s, line=%d, function=%s, deallocated the memory segment at address %p\n", file, line, PRINT_TRACER(), p);
+	free(p);
+
 }
 
 #define realloc(a,b) REALLOC(a,b,__FILE__,__LINE__)
@@ -187,15 +188,31 @@ void freeListNodes(ListNode *node){
 //     POP_TRACE();
 // }
 
-void addArray(char **array, int index, char *string, int size){
+int resizeArray(char ***array, int arrSize) {
+  int newSize = arrSize * 2;
+  *array = realloc(*array, newSize * sizeof(char *));
+  for (int i = arrSize; i < newSize; i++) {
+    (*array)[i] = NULL;
+  }
+  return newSize;
+}
 
-  array[index] = (char*)malloc(sizeof(char)* size);
-  strcpy(array[index], string);
+int addArray(char ***array, int index, char *string, int stringSize, int arrSize){
+  if (index >= arrSize) {
+    printf("resizing");
+    arrSize = resizeArray(array, arrSize);
+  }
+
+  *array[index] = (char*)malloc(sizeof(char)* stringSize);
+  strcpy(*array[index], string);
+
+  return arrSize;
 }
 
 void freeArray(char **array, int size){
 
   for(int i = 0; i < size; i++) {
+    printf("free word in array");
     free(array[i]);
   }
   free(array);
@@ -203,14 +220,15 @@ void freeArray(char **array, int size){
 
 int main() {
     char *line = NULL;
-    char **array = malloc(10 * sizeof(char *));
+    int arrSize = 10;
+    char **array = malloc(sizeof(char *) * arrSize);
     size_t lineSize = 0;
     ssize_t read;
 
     PUSH_TRACE("main");
 
     for(int i = 0; i < (sizeof(array) / sizeof(char *)); i++) {
-        array[i] = NULL;
+        array[i] = 0;
     }
 
     int count = 0;
@@ -219,7 +237,8 @@ int main() {
 
         line[strcspn(line, "\n")] = 0;
         addNodes(line, count, size);
-        addArray(array, count, line, size);   //why not also taking in size of line?
+        arrSize = addArray(&array, count, line, size, arrSize);
+
         count++;
 
     }
