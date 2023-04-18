@@ -48,19 +48,19 @@ int main(void) {
    char nameInput[50];
    char phoneInput[50];
    
-   fgets(nameInput, 64, stdin);
-   fgets(phoneInput, 64, stdin);
+   fgets(nameInput, 49, stdin);
+   fgets(phoneInput, 49, stdin);
    InitializeContactNode(nameInput, phoneInput, headNode);
    printf("Person 1: %s, %s\n", GetName(headNode), GetPhoneNumber(headNode));
    
-   fgets(nameInput, 64, stdin);
-   fgets(phoneInput, 64, stdin);
+   fgets(nameInput, 49, stdin);
+   fgets(phoneInput, 49, stdin);
    InitializeContactNode(nameInput, phoneInput, secondNode);
    InsertAfter(headNode, secondNode);
    printf("Person 2: %s, %s\n", GetName(secondNode), GetPhoneNumber(secondNode));
    
-   fgets(nameInput, 64, stdin);
-   fgets(phoneInput, 64, stdin);
+   fgets(nameInput, 49, stdin);
+   fgets(phoneInput, 49, stdin);
    InitializeContactNode(nameInput, phoneInput, thirdNode);
    InsertAfter(secondNode, thirdNode);
    printf("Person 3: %s, %s\n", GetName(thirdNode), GetPhoneNumber(thirdNode));
