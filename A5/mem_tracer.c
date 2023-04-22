@@ -151,11 +151,14 @@ static struct node* head = NULL;       // ptr to the top of the stack
 static struct node* tail = NULL;       // ptr to the end of the stack
 
 // assigns a line num and input pointer to a new node at the end of a linked list
-void add_node(int line_num, char* input) {
+void add_node(int line_num, char* line_ptr) {
     PUSH_TRACE("addNode");
+
+
+
     struct node* new_node = (struct node*) malloc(sizeof(struct node));
     new_node->line_num = line_num;
-    new_node->line = input;
+    new_node->line = line_ptr;
     new_node->next = NULL;
 
     // checking if list is empty
@@ -199,8 +202,8 @@ void free_linked_list(struct node* head_node) {
 }
 
 // resize the lines array by doubling its size
-char** resize_lines_array(char** lines, int *array_capacity) {
-    PUSH_TRACE("resize_lines_array");
+char** resize_array(char** lines, int *array_capacity) {
+    PUSH_TRACE("resize_array");
     *array_capacity *= 2;
     lines = realloc(lines, *array_capacity * sizeof(char*));
     POP_TRACE();
@@ -215,6 +218,26 @@ void free_lines_array(char** lines, int line_count) {
     }
     free(lines);
     POP_TRACE();
+}
+// i think it should be a void func
+void addArray(char** lines, int line_count, char line[]) {
+  PUSH_TRACE("addArray");
+
+  // store string into a pointer
+  char *line_ptr = (char*) malloc(strlen(line) + 1);
+  strcpy(line_ptr, line);
+
+//   // check to see if we need to reallocate memory for line pointer array
+//   if (line_count > *array_capacity) {
+//     lines = resize_array(lines, array_capacity);
+//   }
+
+  //adding to array
+  lines[line_count-1] = line_ptr;
+  printf("array[%d] = \"%s\"\n", line_count - 1, line_ptr);
+  fflush(stdout);
+  free(line_ptr);
+  POP_TRACE();
 }
 
 /**
@@ -258,12 +281,14 @@ int main() {
         if (line_count > array_capacity) {
             lines = resize_lines_array(lines, &array_capacity);
         }
-        lines[line_count-1] = line_ptr;
-        printf("array[%d] = \"%s\"", line_count - 1, line_ptr);
-        fflush(stdout);
+        addArray(lines, line_count, input);
+//         lines[line_count-1] = line_ptr;
+//         printf("array[%d] = \"%s\"\n", line_count - 1, line_ptr);
+//         fflush(stdout);
 
         // creating node
         add_node(line_count, line_ptr);
+        free(line_ptr);
     }
 
     print_nodes(head);
