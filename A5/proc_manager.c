@@ -99,15 +99,23 @@ char *strdup2(char *s) /* make a duplicate of s */
 //End of HASHTABLE CODE
 
 #define MAX_COMMAND_LENGTH 30
+
 char line[MAX_COMMAND_LENGTH + 1];
 char *args[100];    // assume 100 commands max
+int status;
+FILE *fp;
+char filenameout[10], filenameerr[10];
+int fd_out, fd_err;
 int index = 0;
+
+
 //put commands in a data structure (e.g. hash table), which is used for recording for each exec
 // the start time, finish time, index (line number in the commands file), pid and command.
 //see the read_parse_file.c I provided for parsing each command, then
 //save each cmd in an entry of the hashtable.
 
-while ((linesize = getline(&line, &len, fp)) >= 0) {
+//reads through the file line by line or until EOF signal
+while (fgets(line, MAX_COMMAND_LENGTH, stdin) != NULL) {
 
     index++; // this index is the line number in the commands file.
 
