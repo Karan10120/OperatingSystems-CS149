@@ -1,4 +1,10 @@
 /*
+ * Description: OSTEP CH.14 Question 4
+ * Author names: Luc Tang, Karan Gandhi
+ * Author emails: luc.tang@sjsu.edu, karan.gandhi@sjsu.edu
+ * Last modified date: 04/24/2023
+ * Creation date: 04/24/2023
+ *
  * There is no output, but there is a memory leak in
  * the program which is verified by running the program
  * with `valgrind --leak-check=yes`. The program runs
