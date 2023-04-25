@@ -21,9 +21,10 @@
 struct nlist { /* table entry: */
     struct timespec starttime; /* starttime */
     struct timespec finishtime;/* finishtime */
-    int index; /* index // this is the line index in the input text file */
-    int pid; /* pid  // the process id. you can use the pid result of wait to lookup in the hashtable */
-    char *command; // command. This is good to store for when you decide to restart a command */
+    int index; /* index: this is the line index in the input text file */
+    int pid; /* pid: the process id. you can use the pid result of wait to lookup in the hashtable */
+    char **words_array; // command: This is good to store for when you decide to restart a command */
+    char *first_word; // first word in the command
     struct nlist *next; /* next entry in chain */
 };
 
@@ -70,19 +71,33 @@ struct nlist *insert(char *command, int pid, int index) {
 
     struct nlist *np;
     unsigned hashval;
-
+    // if process exists in hashtable
     if ((np = lookup(pid)) == NULL) {       //linkedlist not found
         np = (struct nlist *) malloc(sizeof(*np));
-        if (np == NULL || (np->command = strdup2(command)) == NULL) {
+        // check if malloc did not work
+        if (np == NULL) {
             return NULL;
         }
+        // assume 10 words each at most 30 chars
+        np->words_array = malloc(10*(30*sizeof(char)));
+        int arg_count = 0;
+
+        // np->first_word = strtok(command, " ");
+
+        np->words_array[arg_count++] = strtok(command, " ");
+        //Separates words by space and places word pointers in array
+        while ( np->words_array[arg_count] != NULL) {
+            np->words_array[arg_count] = strtok(NULL, " ");
+            arg_count++;
+        }
+        np->words_array[arg_count] = NULL;
+
         np->pid = pid;
         np->index = index;
         hashval = hash(pid);
         np->next = hashtab[hashval];
         hashtab[hashval] = np;
     }
-    //free maybe?
     return np;
 }
 
@@ -185,12 +200,12 @@ int main() {
     }
 
 
-            //Waiting for all child processes
+    //Waiting for all child processes
     while ((pid = wait(&status)) >= 0) {
+        struct timespec finishtime;
+        //memset(&finishtime, 0, sizeof(finishtime));
+        clock_gettime(CLOCK_MONOTONIC, &finishtime);
         if (pid > 0) {
-            struct timespec finishtime;
-            //memset(&finishtime, 0, sizeof(finishtime));
-            clock_gettime(CLOCK_MONOTONIC, &finishtime);
             struct nlist *entry = lookup(pid);
             entry->finishtime = finishtime;
 
@@ -214,7 +229,7 @@ int main() {
             //fprintf(fp, "Elapsed: %.1f\n", elapsed);
             fclose(fp);
 
-            if (elapsed > 10) {
+            if (elapsed > 2) {
                 struct timespec starttime;
                 clock_gettime(CLOCK_MONOTONIC, &starttime);
                 //forking and checking for error
@@ -222,24 +237,12 @@ int main() {
                     printf("fork error");
                     exit(1);
                 } else if (pid == 0) { //child process
-                    //removes new line character from line
-                    line[strcspn(line, "\n")] = 0;
-
-                    int arg_count = 0;
-                    args[arg_count++] = strtok(line, " ");
-                    //Separates words by space and places word pointers in array
-                    while ( args[arg_count] != NULL) {
-                        args[arg_count] = strtok(NULL, " ");
-                        arg_count++;
-                    }
-                    args[arg_count] = NULL;
-
                     //Out file
                     sprintf(filenameout, "%d.out", getpid());
                     fd_out = open(filenameout, O_RDWR | O_CREAT | O_APPEND, 0777);
                     dup2(fd_out, 1);
-                    //printf("RESTARTING\n");
-                    printf("Starting command %d: child %d pid of parent %d\n",  index, getpid(), getppid());
+                    printf("RESTARTING\n");
+                    printf("Starting command %d: child %d pid of parent %d\n",  entry->index, getpid(), getppid());
                     fflush(stdout);
                     close(fd_out);
 
@@ -247,13 +250,13 @@ int main() {
                     sprintf(filenameerr, "%d.err", getpid());
                     fd_err = open(filenameerr, O_RDWR | O_CREAT | O_APPEND, 0777);
                     dup2(fd_err, 2);
-                    //printf("RESTARTING\n");
+                    printf("RESTARTING\n");
                     //fflush(stderr);
 
-                    execvp(args[0], args);
+                    execvp(entry->first_word, entry->words_array);
 
                     //If exec fails
-                    fprintf(stderr, "Could not execute command: %s\n", args[0]);
+                    fprintf(stderr, "Could not execute command: %s\n", entry->words_array[0]);
                     fflush(stderr);
                     close(fd_err);
                     exit(2);
@@ -267,8 +270,6 @@ int main() {
                 }
             }
         }
-
-
     }
 
     exit(0);
