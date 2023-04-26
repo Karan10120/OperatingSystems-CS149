@@ -3,8 +3,8 @@
  * output and error files for process.
  * Author names: Luc Tang, Karan Gandhi
  * Author emails: luc.tang@sjsu.edu, karan.gandhi@sjsu.edu
- * Last modified date: 03/23/2023
- * Creation date: 03/20/2023
+ * Last modified date: 04/25/2023
+ * Creation date: 04/21/2023
  **/
 
 #include <stdio.h>
@@ -231,7 +231,7 @@ int main() {
 
 
             struct timespec new_starttime;
-            while (elapsed > 2) {
+            if (elapsed > 2) {
 
                 clock_gettime(CLOCK_MONOTONIC, &new_starttime);
                 //forking and checking for error
@@ -269,25 +269,25 @@ int main() {
                     struct nlist *entry_new = insert(line, (int)pid, index);
                     entry_new->starttime = new_starttime;
                 }
-
+ 
                 struct timespec new_finishtime;
                 clock_gettime(CLOCK_MONOTONIC, &new_finishtime);
 
                 // Wait for the restarted child process
-                pid = wait(&status);
+                //pid = wait(&status);
 
-                struct nlist *entry_new = lookup(pid);
-                entry_new->finishtime = new_finishtime;
+                //struct nlist *entry_new = lookup(pid);
+                //entry_new->finishtime = new_finishtime;
 
                 // Calculate new elapsed time
-                elapsed = (float)(new_finishtime.tv_sec - entry_new->starttime.tv_sec);
+                //elapsed = (float)(new_finishtime.tv_sec - entry_new->starttime.tv_sec);
 
-                sprintf(filenameout, "%d.out", pid);
-                fp = fopen(filenameout, "a");
-                fprintf(fp, "Finished child %d pid of parent %d\n", pid, getpid());
-                float elapsed =  (float)(finishtime.tv_sec - entry->starttime.tv_sec);
-                fprintf(fp, "Finished at %.ld, runtime duration %.f\n", entry->finishtime.tv_sec, elapsed);
-                fclose(fp);
+                //sprintf(filenameout, "%d.out", pid);
+                //fp = fopen(filenameout, "a");
+                //fprintf(fp, "Finished child %d pid of parent %d\n", pid, getpid());
+                //float elapsed =  (float)(finishtime.tv_sec - entry->starttime.tv_sec);
+                //fprintf(fp, "Finished at %.ld, runtime duration %.f\n", entry->finishtime.tv_sec, elapsed);
+                //fclose(fp);
 
 
             }
