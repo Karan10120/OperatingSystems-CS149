@@ -32,8 +32,8 @@ struct nlist { /* table entry: */
  static struct nlist *hashtab[HASHSIZE]; /* pointer table */
 
 /* This is the hash function: form hash value for string s */
-/* TODO change to: unsigned hash(int pid) */
-/* TODO modify to hash by pid . /*
+// TODO change to: unsigned hash(int pid)
+// TODO modify to hash by pid .
 /* You can use a simple hash function: pid % HASHSIZE */
 unsigned hash(int pid)
 {
@@ -229,9 +229,11 @@ int main() {
             //fprintf(fp, "Elapsed: %.1f\n", elapsed);
             fclose(fp);
 
-            if (elapsed > 2) {
-                struct timespec starttime;
-                clock_gettime(CLOCK_MONOTONIC, &starttime);
+
+            struct timespec new_starttime;
+            while (elapsed > 2) {
+
+                clock_gettime(CLOCK_MONOTONIC, &new_starttime);
                 //forking and checking for error
                 if ((pid = fork()) < 0) {
                     printf("fork error");
@@ -253,6 +255,7 @@ int main() {
                     printf("RESTARTING\n");
                     //fflush(stderr);
 
+                    printf("%s", *(entry->words_array));
                     execvp(entry->first_word, entry->words_array);
 
                     //If exec fails
@@ -264,10 +267,29 @@ int main() {
                 else if (pid > 0) { //Parent Process
 
                     struct nlist *entry_new = insert(line, (int)pid, index);
-                    //entry_new->starttime = starttime;
-                    //entry->command = line;
-                    entry_new->starttime = starttime;
+                    entry_new->starttime = new_starttime;
                 }
+
+                struct timespec new_finishtime;
+                clock_gettime(CLOCK_MONOTONIC, &new_finishtime);
+
+                // Wait for the restarted child process
+                pid = wait(&status);
+
+                struct nlist *entry_new = lookup(pid);
+                entry_new->finishtime = new_finishtime;
+
+                // Calculate new elapsed time
+                elapsed = (float)(new_finishtime.tv_sec - entry_new->starttime.tv_sec);
+
+                sprintf(filenameout, "%d.out", pid);
+                fp = fopen(filenameout, "a");
+                fprintf(fp, "Finished child %d pid of parent %d\n", pid, getpid());
+                float elapsed =  (float)(finishtime.tv_sec - entry->starttime.tv_sec);
+                fprintf(fp, "Finished at %.ld, runtime duration %.f\n", entry->finishtime.tv_sec, elapsed);
+                fclose(fp);
+
+
             }
         }
     }
