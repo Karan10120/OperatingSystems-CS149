@@ -1,9 +1,10 @@
 /**
  * Description: This program executes commands in parallel with corresponding
- * output and error files for process.
+ * output and error files for each process and restarts if the process takes longer
+ * than 2 seconds to execute.
  * Author names: Luc Tang, Karan Gandhi
  * Author emails: luc.tang@sjsu.edu, karan.gandhi@sjsu.edu
- * Last modified date: 04/25/2023
+ * Last modified date: 04/26/2023
  * Creation date: 04/21/2023
  **/
 
@@ -25,6 +26,7 @@ struct nlist { /* table entry: */
     int pid; /* pid: the process id. you can use the pid result of wait to lookup in the hashtable */
     char **words_array; // command: This is good to store for when you decide to restart a command */
     char *first_word; // first word in the command
+    char *command;      // full length command
     struct nlist *next; /* next entry in chain */
 };
 
@@ -32,20 +34,13 @@ struct nlist { /* table entry: */
  static struct nlist *hashtab[HASHSIZE]; /* pointer table */
 
 /* This is the hash function: form hash value for string s */
-// TODO change to: unsigned hash(int pid)
-// TODO modify to hash by pid .
 /* You can use a simple hash function: pid % HASHSIZE */
 unsigned hash(int pid)
 {
-//    unsigned hashval;
-//     for (hashval = 0; *s != '\0'; s++)
-//       hashval = *s + 31 * hashval;
     return ((unsigned)(pid % HASHSIZE));
 }
 
 /* lookup: look for s in hashtab */
-/* TODO change to lookup by pid: struct nlist *lookup(int pid) */
-/* TODO modify to search by pid, you won't need strcmp anymore */
 /* This is traversing the linked list under a slot of the hash table. The array position to look in is returned by the hash function */
 struct nlist *lookup(int pid)
 {
@@ -61,8 +56,6 @@ char *strdup2(char *);
 
 
 /* insert: put (name, defn) in hashtab */
-/* TODO: change this to insert in hash table the info for a new pid and its command */
-/* TODO: change signature to: struct nlist *insert(char *command, int pid, int index). */
 /* This insert returns a nlist node. Thus when you call insert in your main function  */
 /* you will save the returned nlist node in a variable (mynode). */
 /* Then you can set the starttime and finishtime from your main function: */
@@ -78,13 +71,18 @@ struct nlist *insert(char *command, int pid, int index) {
         if (np == NULL) {
             return NULL;
         }
+        char *cmd = strdup2(command);
+        np->command = cmd;
         // assume 10 words each at most 30 chars
-        np->words_array = malloc(10*(30*sizeof(char)));
+        np->words_array = (char **)malloc(10 * sizeof(char *));
+        // allocating memory for array
+        for (int i = 0; i < 10; i++) {
+            np->words_array[i] = (char *)malloc(30 * sizeof(char));
+        }
+
         int arg_count = 0;
 
-        // np->first_word = strtok(command, " ");
-
-        np->words_array[arg_count++] = strtok(command, " ");
+        np->words_array[arg_count++] = strtok(cmd, " ");
         //Separates words by space and places word pointers in array
         while ( np->words_array[arg_count] != NULL) {
             np->words_array[arg_count] = strtok(NULL, " ");
@@ -95,6 +93,7 @@ struct nlist *insert(char *command, int pid, int index) {
         np->pid = pid;
         np->index = index;
         hashval = hash(pid);
+        np->first_word = np->words_array[0];
         np->next = hashtab[hashval];
         hashtab[hashval] = np;
     }
@@ -113,24 +112,50 @@ char *strdup2(char *s) /* make a duplicate of s */
 }
 //End of HASHTABLE CODE
 
+void print_hashtable() {
+    printf("\nHashtable contents:\n");
+    for (int i = 0; i < HASHSIZE; i++) {
+        struct nlist *np;
+        for (np = hashtab[i]; np != NULL; np = np->next) {
+            printf("Slot %d:\n", i);
+            printf("  PID: %d\n", np->pid);
+            printf("  Index: %d\n", np->index);
+            fflush(stdout);
+            printf("  First word: %s\n", np->first_word);
+            printf("  Command: %s\n", np->command);
+            printf("  Command arr: ");
+            for (int j = 0; np->words_array[j] != NULL; j++) {
+                printf("%s ", np->words_array[j]);
+            }
+            printf("\n");
+            printf("  Start time: %ld.%ld\n", np->starttime.tv_sec, np->starttime.tv_nsec);
+            printf("  Finish time: %ld.%ld\n", np->finishtime.tv_sec, np->finishtime.tv_nsec);
+            fflush(stdout);
+        }
+    }
+}
 
+// char *words_array_to_string(char **words_array) {
+//     int length = 0;
+//     for (int i = 0; words_array[i] != NULL; i++) {
+//         length += strlen(words_array[i]) + 1; // +1 for space or null terminator
+//     }
 
+//     char *result = (char *)malloc(length * sizeof(char));
+//     result[0] = '\0';
 
+//     for (int i = 0; words_array[i] != NULL; i++) {
+//         strcat(result, words_array[i]);
+//         if (words_array[i + 1] != NULL) {
+//             strcat(result, " ");
+//         }
+//     }
 
+//     result[strcspn(result, "\n")] = 0;
 
-/**
- * This function counts and prints names for one or more files.
- * Assumption:
- * 1. The command and parameters are at most 30 characters.
- * 2. Atmost 100 commands.
- * 3. Each line contains a new command.
- * 4. Each command is separated by a new line.
- * 5. Input file contains only valid characters.
- * 6. Assume a command has a maximum of two parameters.
- *
- * Input parameters: stdin
- * Returns: Output and error files for each process
-**/
+//     return result;
+// }
+
 
 int main() {
     char line[MAX_COMMAND_LENGTH + 1];
@@ -145,6 +170,7 @@ int main() {
 
     //reads through the file line by line or until EOF signal
     while (fgets(line, MAX_COMMAND_LENGTH, stdin) != NULL) {
+        char *line_copy = strdup2(line);
 
         //increment command line count
         index++;
@@ -190,11 +216,9 @@ int main() {
             close(fd_err);
             exit(2);
         }
-        else if (pid > 0) { //Parent Process
-
-            struct nlist *entry_new = insert(line, (int)pid, index);
-            //entry_new->starttime = starttime;
-            //entry->command = line;
+        else if (pid > 0) { //Parent Process: inserts into hashtable
+            printf("inserted line: %s", line_copy);
+            struct nlist *entry_new = insert(line_copy, (int)pid, index);
             entry_new->starttime = starttime;
         }
     }
@@ -205,8 +229,10 @@ int main() {
         struct timespec finishtime;
         //memset(&finishtime, 0, sizeof(finishtime));
         clock_gettime(CLOCK_MONOTONIC, &finishtime);
+        //child process
         if (pid > 0) {
             struct nlist *entry = lookup(pid);
+            printf("lookup: %d, %s", pid, entry->command);
             entry->finishtime = finishtime;
 
             sprintf(filenameerr, "%d.err", pid);
@@ -223,14 +249,13 @@ int main() {
             fp = fopen(filenameout, "a");
             fprintf(fp, "Finished child %d pid of parent %d\n", pid, getpid());
             float elapsed =  (float)(finishtime.tv_sec - entry->starttime.tv_sec);
-            //fprintf(fp, "Start Time: %.1f\n", (double)entry->starttime.tv_sec);
-            //fprintf(fp, "Finish Time: %.1f\n", (double)entry->finishtime.tv_sec);
             fprintf(fp, "Finished at %.ld, runtime duration %.f\n", entry->finishtime.tv_sec, elapsed);
             //fprintf(fp, "Elapsed: %.1f\n", elapsed);
             fclose(fp);
 
 
             struct timespec new_starttime;
+            //process takes longer than 2 seconds
             if (elapsed > 2) {
 
                 clock_gettime(CLOCK_MONOTONIC, &new_starttime);
@@ -253,10 +278,9 @@ int main() {
                     fd_err = open(filenameerr, O_RDWR | O_CREAT | O_APPEND, 0777);
                     dup2(fd_err, 2);
                     printf("RESTARTING\n");
-                    //fflush(stderr);
 
                     printf("%s", *(entry->words_array));
-                    execvp(entry->first_word, entry->words_array);
+                    execvp(entry->words_array[0], entry->words_array);
 
                     //If exec fails
                     fprintf(stderr, "Could not execute command: %s\n", entry->words_array[0]);
@@ -265,34 +289,19 @@ int main() {
                     exit(2);
                 }
                 else if (pid > 0) { //Parent Process
-
-                    struct nlist *entry_new = insert(line, (int)pid, index);
+                    // char *concatenated_cmd = words_array_to_string(entry->words_array);
+                    // printf("concat: %s", concatenated_cmd);
+                    struct nlist *entry_new = insert(entry->command, (int)pid, entry->index);
                     entry_new->starttime = new_starttime;
                 }
- 
-                struct timespec new_finishtime;
-                clock_gettime(CLOCK_MONOTONIC, &new_finishtime);
-
-                // Wait for the restarted child process
-                //pid = wait(&status);
-
-                //struct nlist *entry_new = lookup(pid);
-                //entry_new->finishtime = new_finishtime;
-
-                // Calculate new elapsed time
-                //elapsed = (float)(new_finishtime.tv_sec - entry_new->starttime.tv_sec);
-
-                //sprintf(filenameout, "%d.out", pid);
-                //fp = fopen(filenameout, "a");
-                //fprintf(fp, "Finished child %d pid of parent %d\n", pid, getpid());
-                //float elapsed =  (float)(finishtime.tv_sec - entry->starttime.tv_sec);
-                //fprintf(fp, "Finished at %.ld, runtime duration %.f\n", entry->finishtime.tv_sec, elapsed);
-                //fclose(fp);
-
-
+            } else {    //takes less than 2 seconds
+                sprintf(filenameerr, "%d.err", pid);
+                fp = fopen(filenameerr, "a");
+                fprintf(fp, "spawning too fast\n");
+                fclose(fp);
             }
         }
     }
-
+    // print_hashtable();
     exit(0);
 }
