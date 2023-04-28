@@ -5,6 +5,8 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <time.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 //LinkedList Implementation
 
@@ -16,10 +18,10 @@ typedef struct command_struct {
     struct command_struct* nextCommandPtr;
 } CommandNode;
 
-void CreateCommandNode(CommandNode* thisNode, char **cmd, int ind, CommandNode* nextCmd) {
+void CreateCommandNode(CommandNode* thisNode, char **cmd, int ind, int pid, CommandNode* nextCmd) {
     thisNode->commands_array = cmd;
     thisNode->index = ind;
-    thisNode->PID = getpid();   //added
+    thisNode->PID = pid;   //added
     thisNode->nextCommandPtr = nextCmd;
     return;
 }
@@ -38,7 +40,8 @@ CommandNode* GetNextCommand(CommandNode* thisNode) {
 }
 
 CommandNode* FindCommand(CommandNode* head, int pid) {
-    CommandNode* current = head;
+    CommandNode* current = NULL;
+    current = head;
     while (current != NULL) {
         if (current->PID == pid) { return current; }
         current = current->nextCommandPtr;
@@ -48,17 +51,17 @@ CommandNode* FindCommand(CommandNode* head, int pid) {
 }
 //end of LinkedList Implementation
 
-char** tokenize_line (char* line) {
+char** tokenize_line (char* line, int* count) {
     char* token = strtok(line, " ");
-    char** words = malloc(21 * sizeof(char*));
-    int count = 0;
+    char** words = (char**)calloc(21, sizeof(char*));
+    //int count = 0;
 
-    while (token!= NULL && count < 20) {
-        words[count] = strdup(token);
+    while (token!= NULL && (*count) < 20) {
+        words[(*count)] = strdup(token);
         token = strtok(NULL, " ");
-        count++;
+        (*count)++;
     }
-    words[count] = NULL;     //set last element in array to null
+    words[(*count)] = NULL;     //set last element in array to null
     return words;
 }
 
@@ -70,7 +73,8 @@ void print_words (char** words) {
 }
 
 void PrintLinkedList(CommandNode* head) {
-    CommandNode* current = head;
+    CommandNode* current = NULL;
+    current = head;
 
     while (current != NULL) {
         printf("Command: ");
@@ -87,7 +91,8 @@ void PrintLinkedList(CommandNode* head) {
 }
 
 void free_linked_list(CommandNode* head) {
-    CommandNode* current = head;
+    CommandNode* current = NULL;
+    current = head;
     CommandNode* next = NULL;
 
     while (current != NULL) {
@@ -107,15 +112,19 @@ int main(void) {
     char line[101];
     CommandNode* head = NULL;
     CommandNode* current = NULL;
+    char filenameout[10], filenameerr[10];
+    int fd_out, fd_err;
 
-    while (fgets(line, 100, stdin) != NULL){
+    while (fgets(line, 100, stdin)){
         index++;
         line[strcspn(line, "\n")] = '\0';
         printf("line before: %s", line);
 
         //char cmds_array[20][20];
-        int count = 0;
-        char** cmds_array = tokenize_line(line);
+        int* count = calloc(1, sizeof(int*));
+//         char** words = (char**)calloc(21, sizeof(char*));
+//         if (words == NULL) printf("ERRRROR");
+        char** cmds_array = tokenize_line(line, count);
         print_words(cmds_array);
 
         printf(" Line after: %s\n", line);
@@ -127,23 +136,53 @@ int main(void) {
 
         if (pid == 0) { // child process
             // execute the command using execvp()
-            if (execvp(cmds_array[0], cmds_array) < 0) {
+            if (execvp(cmds_array[0], cmds_array) <= 0) {
             printf("Error: Failed to execute command.\n");
-            return 1;
             }
         }
         else if (pid > 0) { // parent process
-            wait(NULL); // wait for the child process to finish
+
+            //file outputs and errs
+            sprintf(filenameout, "%d.out", pid);
+            fd_out = open(filenameout, O_RDWR | O_CREAT | O_APPEND, 0777);
+            dup2(fd_out, 1);
+            printf("Starting command %d: child %d pid of parent %d\n", index, pid, getpid());
+            fflush(stdout);
+
+            sprintf(filenameerr, "%d.err", pid);
+            fd_err = open(filenameerr, O_RDWR | O_CREAT | O_APPEND, 0777);
+            dup2(fd_err, 2);
+
             CommandNode* node = (CommandNode*)malloc(sizeof(CommandNode));
-            CreateCommandNode(node, cmds_array, index, NULL);
-            if (head == NULL) {
+            CreateCommandNode(node, cmds_array, index, pid, NULL);
+            if (head == NULL) {         //no head yet
                 head = node;
                 current = node;
-            } else {
+            } else {                    //head exists; adding to after current node
                 InsertCommandAfter(current, node);
             }
             CommandNode* entry_new = FindCommand(head, pid);
             entry_new->starttime = start;
+
+
+
+            //wait(NULL); // wait for the child process to finish
+            //for (int i = 0; i < (*21); i++) {
+            //    free(cmds_array[i]);
+            //}
+            //free(cmds_array);
+            //free(count);
+
+//             CommandNode* node = (CommandNode*)malloc(sizeof(CommandNode));
+//             CreateCommandNode(node, cmds_array, index, NULL);
+//             if (head == NULL) {
+//                 head = node;
+//                 current = node;
+//             } else {
+//                 InsertCommandAfter(current, node);
+//             }
+//             CommandNode* entry_new = FindCommand(head, pid);
+//             entry_new->starttime = start;
         }
         else { // error occurred
             printf("Error Forking\n");
