@@ -134,24 +134,29 @@ int main(void) {
 
         pid_t pid = fork(); // create a child process
 
+
+
         if (pid == 0) { // child process
+
+            //file outputs and errs
+            sprintf(filenameout, "%d.out", getpid());
+            fd_out = open(filenameout, O_RDWR | O_CREAT | O_APPEND, 0777);
+            dup2(fd_out, 1);
+            printf("Starting command %d: child %d pid of parent %d\n", index, getpid(), getppid());
+            fflush(stdout);
+
+            sprintf(filenameerr, "%d.err", getpid());
+            fd_err = open(filenameerr, O_RDWR | O_CREAT | O_APPEND, 0777);
+            dup2(fd_err, 2);
+
             // execute the command using execvp()
             if (execvp(cmds_array[0], cmds_array) <= 0) {
-            printf("Error: Failed to execute command.\n");
+            fprintf(stderr, "Error: Failed to execute command: %s\n", cmds_array[0]);
             }
         }
         else if (pid > 0) { // parent process
 
-            //file outputs and errs
-            sprintf(filenameout, "%d.out", pid);
-            fd_out = open(filenameout, O_RDWR | O_CREAT | O_APPEND, 0777);
-            dup2(fd_out, 1);
-            printf("Starting command %d: child %d pid of parent %d\n", index, pid, getpid());
-            fflush(stdout);
 
-            sprintf(filenameerr, "%d.err", pid);
-            fd_err = open(filenameerr, O_RDWR | O_CREAT | O_APPEND, 0777);
-            dup2(fd_err, 2);
 
             CommandNode* node = (CommandNode*)malloc(sizeof(CommandNode));
             CreateCommandNode(node, cmds_array, index, pid, NULL);
@@ -166,12 +171,13 @@ int main(void) {
 
 
 
-            //wait(NULL); // wait for the child process to finish
-            //for (int i = 0; i < (*21); i++) {
-            //    free(cmds_array[i]);
-            //}
-            //free(cmds_array);
-            //free(count);
+            wait(NULL); // wait for the child process to finish
+            for (int i = 0; i < (21); i++) {
+                free(cmds_array[i]);
+            }
+
+             free(cmds_array);
+             free(count);
 
 //             CommandNode* node = (CommandNode*)malloc(sizeof(CommandNode));
 //             CreateCommandNode(node, cmds_array, index, NULL);
@@ -185,12 +191,14 @@ int main(void) {
 //             entry_new->starttime = start;
         }
         else { // error occurred
-            printf("Error Forking\n");
+            fprintf(stderr, "Error Forking\n");
             exit(2);
         }
     }
 
     //PrintLinkedList(head);
-    free(head);
+    //free_linked_list(head);
+    //free(head);
+
     return 0;
 }
