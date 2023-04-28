@@ -171,13 +171,13 @@ int main(void) {
 
 
 
-            wait(NULL); // wait for the child process to finish
-            for (int i = 0; i < (21); i++) {
-                free(cmds_array[i]);
-            }
-
-             free(cmds_array);
-             free(count);
+//           wait(NULL); // wait for the child process to finish
+//             for (int i = 0; i < (21); i++) {
+//                 free(cmds_array[i]);
+//             }
+//
+//              free(cmds_array);
+//              free(count);
 
 //             CommandNode* node = (CommandNode*)malloc(sizeof(CommandNode));
 //             CreateCommandNode(node, cmds_array, index, NULL);
@@ -193,6 +193,48 @@ int main(void) {
         else { // error occurred
             fprintf(stderr, "Error Forking\n");
             exit(2);
+        }
+    }
+
+    int status;
+    int childPID;
+    while ((childPID = wait(&status)) > 0) {
+        double elapsed;
+//         printf("Entering second while loop");
+        if (childPID > 0) {      //ensure only parent process
+//             printf("Entering if");
+            struct timespec finish;
+            clock_gettime(CLOCK_MONOTONIC, &finish);
+             CommandNode* entry = FindCommand(head, childPID);
+//             entry->finishtime = finish;
+
+             //file outputs and errs
+            sprintf(filenameout, "%d.out", childPID);
+            fd_out = open(filenameout, O_RDWR | O_CREAT | O_APPEND, 0777);
+            dup2(fd_out, 1);
+
+            sprintf(filenameerr, "%d.err", childPID);
+            fd_err = open(filenameerr, O_RDWR | O_CREAT | O_APPEND, 0777);
+            dup2(fd_err, 2);
+
+//             printf("GETTING HERE");
+            elapsed = (double)(finish.tv_sec - (entry->starttime.tv_sec));
+            fprintf(stdout, "Finished child %d pid of parent %d\n", childPID, getpid());
+            fprintf(stdout, "Finished at %ld, runtime duration %.1f\n", finish.tv_sec, elapsed);
+            fflush(stdout);
+
+            if (WIFEXITED(status)) {
+                fprintf(stderr, "Exited with exit code = %d\n", WEXITSTATUS(status));
+            } else if (WIFSIGNALED(status)) {   //Abnormal termination with signal
+                fprintf(stderr, "Killed with signal %d\n", WTERMSIG(status));
+            }
+
+            if (elapsed <= 2.0) {
+                fprintf(stderr, "Spawning too fast\n");
+            } else if (elapsed > 2.0) {
+
+            }
+
         }
     }
 
