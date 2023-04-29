@@ -4,304 +4,250 @@
  * than 2 seconds to execute.
  * Author names: Luc Tang, Karan Gandhi
  * Author emails: luc.tang@sjsu.edu, karan.gandhi@sjsu.edu
- * Last modified date: 04/26/2023
+ * Last modified date: 04/28/2023
  * Creation date: 04/21/2023
  **/
 
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <sys/wait.h>
 #include <string.h>
-#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <time.h>
+#include <fcntl.h>
+#include <unistd.h>
 
-#define MAX_COMMAND_LENGTH 30
+//LinkedList Implementation
 
-//HASHTABLE CODE
-struct nlist { /* table entry: */
-    struct timespec starttime; /* starttime */
-    struct timespec finishtime;/* finishtime */
-    int index; /* index: this is the line index in the input text file */
-    int pid; /* pid: the process id. you can use the pid result of wait to lookup in the hashtable */
-    char **words_array; // command: This is good to store for when you decide to restart a command */
-    char *first_word; // first word in the command
-    char *command;      // full length command
-    struct nlist *next; /* next entry in chain */
-};
+typedef struct command_struct {
+    char **commands_array;      //array of command strings
+    int index;                  //index of command number
+    int PID;                    //pid process of node
+    struct timespec starttime;  //starttime of node
+    struct command_struct* nextCommandPtr;      //pointer to next node in Linkedlist
+} CommandNode;
 
- #define HASHSIZE 101
- static struct nlist *hashtab[HASHSIZE]; /* pointer table */
-
-/* This is the hash function: form hash value for string s */
-/* You can use a simple hash function: pid % HASHSIZE */
-unsigned hash(int pid)
-{
-    return ((unsigned)(pid % HASHSIZE));
+//this function creates a CommandNode given the attributes of the struct
+void CreateCommandNode(CommandNode* thisNode, char **cmd, int ind, int pid, CommandNode* nextCmd) {
+    thisNode->commands_array = cmd;
+    thisNode->index = ind;
+    thisNode->PID = pid;
+    thisNode->nextCommandPtr = nextCmd;
+    return;
 }
 
-/* lookup: look for s in hashtab */
-/* This is traversing the linked list under a slot of the hash table. The array position to look in is returned by the hash function */
-struct nlist *lookup(int pid)
-{
-    struct nlist *np;
-    for (np = hashtab[hash(pid)]; np != NULL; np = np->next)
-        if (pid == np->pid)
-          return np; /* found */
-    return NULL; /* not found */
+//Inserts a Command Node after a given node
+//Use to from a LinkedList starting from head node
+void InsertCommandAfter(CommandNode* thisNode, CommandNode* newNode) {
+    CommandNode* tmpNext = NULL;
+
+    tmpNext = thisNode->nextCommandPtr;
+    thisNode->nextCommandPtr = newNode;
+    newNode->nextCommandPtr = tmpNext;
+    return;
 }
 
+//Acessor to get the pointer to the next CommandNode
+CommandNode* GetNextCommand(CommandNode* thisNode) {
+    return thisNode->nextCommandPtr;
+}
 
-char *strdup2(char *);
-
-
-/* insert: put (name, defn) in hashtab */
-/* This insert returns a nlist node. Thus when you call insert in your main function  */
-/* you will save the returned nlist node in a variable (mynode). */
-/* Then you can set the starttime and finishtime from your main function: */
-/* mynode->starttime = starttime; mynode->finishtime = finishtime; */
-struct nlist *insert(char *command, int pid, int index) {
-
-    struct nlist *np;
-    unsigned hashval;
-    // if process exists in hashtable
-    if ((np = lookup(pid)) == NULL) {       //linkedlist not found
-        np = (struct nlist *) malloc(sizeof(*np));
-        // check if malloc did not work
-        if (np == NULL) {
-            return NULL;
-        }
-        char *cmd = strdup2(command);
-        np->command = cmd;
-        // assume 10 words each at most 30 chars
-        np->words_array = (char **)malloc(10 * sizeof(char *));
-        // allocating memory for array
-        for (int i = 0; i < 10; i++) {
-            np->words_array[i] = (char *)malloc(30 * sizeof(char));
-        }
-
-        int arg_count = 0;
-
-        np->words_array[arg_count++] = strtok(cmd, " ");
-        //Separates words by space and places word pointers in array
-        while ( np->words_array[arg_count] != NULL) {
-            np->words_array[arg_count] = strtok(NULL, " ");
-            arg_count++;
-        }
-        np->words_array[arg_count] = NULL;
-
-        np->pid = pid;
-        np->index = index;
-        hashval = hash(pid);
-        np->first_word = np->words_array[0];
-        np->next = hashtab[hashval];
-        hashtab[hashval] = np;
+//Searches for CommandNode in LinkedList by pid of a node
+CommandNode* FindCommand(CommandNode* head, int pid) {
+    CommandNode* current = NULL;
+    current = head;
+    while (current != NULL) {
+        if (current->PID == pid) { return current; }
+        current = current->nextCommandPtr;
     }
-    return np;
+
+    return NULL;
+}
+//end of LinkedList Implementation
+
+//Function to create tokens of words based upon a given command line
+//Words are then assigned in array to return
+char** tokenize_line (char* line, int* count) {
+    char* token = strtok(line, " ");
+    char** words = (char**)calloc(21, sizeof(char*));
+    //int count = 0;
+
+    while (token!= NULL && (*count) < 20) {
+        words[(*count)] = strdup(token);
+        token = strtok(NULL, " ");
+        (*count)++;
+    }
+    words[(*count)] = NULL;     //set last element in array to null
+    return words;
 }
 
-/** You might need to duplicate the command string to ensure you don't overwrite the previous command each time a new line is read from the input file.
-Or you might not need to duplicate it. It depends on your implementation. **/
-char *strdup2(char *s) /* make a duplicate of s */
-{
-    char *p;
-    p = (char *) malloc(strlen(s)+1); /* +1 for ’\0’ */
-    if (p != NULL)
-       strcpy(p, s);
-    return p;
-}
-//End of HASHTABLE CODE
-
-void print_hashtable() {
-    printf("\nHashtable contents:\n");
-    for (int i = 0; i < HASHSIZE; i++) {
-        struct nlist *np;
-        for (np = hashtab[i]; np != NULL; np = np->next) {
-            printf("Slot %d:\n", i);
-            printf("  PID: %d\n", np->pid);
-            printf("  Index: %d\n", np->index);
-            fflush(stdout);
-            printf("  First word: %s\n", np->first_word);
-            printf("  Command: %s\n", np->command);
-            printf("  Command arr: ");
-            for (int j = 0; np->words_array[j] != NULL; j++) {
-                printf("%s ", np->words_array[j]);
-            }
-            printf("\n");
-            printf("  Start time: %ld.%ld\n", np->starttime.tv_sec, np->starttime.tv_nsec);
-            printf("  Finish time: %ld.%ld\n", np->finishtime.tv_sec, np->finishtime.tv_nsec);
-            fflush(stdout);
+//Frees all the Command Nodes contained in a LinkedList with head node
+void free_linked_list(CommandNode* head) {
+    CommandNode* current = NULL;
+    current = head;
+    CommandNode* next = NULL;
+    //loops until no more nodes in the list
+    while (current != NULL) {
+        for (int i = 0; i < 21; i++) {
+            free(current->commands_array[i]); // free the memory for each string in the array
         }
+        free(current->commands_array); // free the memory for the array itself
+        next = current->nextCommandPtr;
+        free(current);
+        current = next;
     }
 }
 
-// char *words_array_to_string(char **words_array) {
-//     int length = 0;
-//     for (int i = 0; words_array[i] != NULL; i++) {
-//         length += strlen(words_array[i]) + 1; // +1 for space or null terminator
-//     }
-
-//     char *result = (char *)malloc(length * sizeof(char));
-//     result[0] = '\0';
-
-//     for (int i = 0; words_array[i] != NULL; i++) {
-//         strcat(result, words_array[i]);
-//         if (words_array[i + 1] != NULL) {
-//             strcat(result, " ");
-//         }
-//     }
-
-//     result[strcspn(result, "\n")] = 0;
-
-//     return result;
-// }
-
-
-int main() {
-    char line[MAX_COMMAND_LENGTH + 1];
-    char *args[100];    // assume 100 commands max
-    pid_t pid;
-    int status;
-    FILE *fp;
+/**
+ * This function reads commands and spawns processes to run them. Restarting those processes that take more than 2 seconds.
+ * Assumption:
+ * 1. The command and parameters are at most 20 characters.
+ * 2. Each line contains a new command.
+ * 3. Each command is separated by a new line.
+ * 4. Input file contains only valid characters.
+ *
+ * Input parameters: stdin
+ * Returns: Output and error files for each process
+**/
+int main(void) {
+    int index = 0;
+    char line[101];
+    CommandNode* head = NULL;
+    CommandNode* current = NULL;
     char filenameout[10], filenameerr[10];
     int fd_out, fd_err;
-    int index = 0;
-
 
     //reads through the file line by line or until EOF signal
-    while (fgets(line, MAX_COMMAND_LENGTH, stdin) != NULL) {
-        char *line_copy = strdup2(line);
-
-        //increment command line count
+    while (fgets(line, 100, stdin)){
         index++;
+        line[strcspn(line, "\n")] = '\0';                   //Remove trailing new line characters
+        int* count = calloc(1, sizeof(int*));
+        char** cmds_array = tokenize_line(line, count);     //tokenize the input line into words and assign into char** array
+        //saving start time for command
+        struct timespec start;
+        clock_gettime(CLOCK_MONOTONIC, &start);
 
-        struct timespec starttime;
-        clock_gettime(CLOCK_MONOTONIC, &starttime);
+        pid_t pid = fork(); // create a child process
 
-        //forking and checking for error
-        if ((pid = fork()) < 0) {
-            printf("fork error");
-            exit(1);
-        } else if (pid == 0) { //child process
-            //removes new line character from line
-            line[strcspn(line, "\n")] = 0;
+        if (pid == 0) { // child process
 
-            int arg_count = 0;
-            args[arg_count++] = strtok(line, " ");
-            //Separates words by space and places word pointers in array
-            while ( args[arg_count] != NULL) {
-                args[arg_count] = strtok(NULL, " ");
-                arg_count++;
-            }
-            args[arg_count] = NULL;
-
-            //Out file
-            sprintf(filenameout, "%d.out", getpid()); 
+            //file outputs and errs
+            sprintf(filenameout, "%d.out", getpid());
             fd_out = open(filenameout, O_RDWR | O_CREAT | O_APPEND, 0777);
             dup2(fd_out, 1);
-            printf("Starting command %d: child %d pid of parent %d\n",  index, getpid(), getppid());
+            printf("Starting command %d: child %d pid of parent %d\n", index, getpid(), getppid());
             fflush(stdout);
-            close(fd_out);
 
-            //Error file
             sprintf(filenameerr, "%d.err", getpid());
             fd_err = open(filenameerr, O_RDWR | O_CREAT | O_APPEND, 0777);
             dup2(fd_err, 2);
 
-            execvp(args[0], args);
 
-            //If exec fails
-            fprintf(stderr, "Could not execute command: %s\n", args[0]);
-            fflush(stderr);
-            close(fd_err);
-            exit(2);
+            // execute the command using execvp() and if fails to execute print error message
+            if (execvp(cmds_array[0], cmds_array) <= 0) {
+            fprintf(stderr, "Error: Failed to execute command: %s\n", cmds_array[0]);
+            }
         }
-        else if (pid > 0) { //Parent Process: inserts into hashtable
-            printf("inserted line: %s", line_copy);
-            struct nlist *entry_new = insert(line_copy, (int)pid, index);
-            entry_new->starttime = starttime;
+        else if (pid > 0) { // parent process
+
+            CommandNode* node = (CommandNode*)malloc(sizeof(CommandNode));
+            CreateCommandNode(node, cmds_array, index, pid, NULL);
+            if (head == NULL) {         //case where this no head yet in LinkedList
+                head = node;
+                current = node;
+            } else {                    //case when head exists and we add to after the current node
+                InsertCommandAfter(current, node);
+            }
+            CommandNode* entry_new = FindCommand(head, pid);    //search for node by pid in linked list
+            entry_new->starttime = start;                       //assign value of node starttime
+        }
+        else { // error occurred
+            fprintf(stderr, "Error Forking\n");
+            exit(2);
         }
     }
 
+    int status;
+    int childPID;
 
-    //Waiting for all child processes
-    while ((pid = wait(&status)) >= 0) {
-        struct timespec finishtime;
-        //memset(&finishtime, 0, sizeof(finishtime));
-        clock_gettime(CLOCK_MONOTONIC, &finishtime);
-        //child process
-        if (pid > 0) {
-            struct nlist *entry = lookup(pid);
-            printf("lookup: %d, %s", pid, entry->command);
-            entry->finishtime = finishtime;
+    //waiting for all child processes to completed
+    while ((childPID = wait(&status)) > 0) {
+        double elapsed;
 
-            sprintf(filenameerr, "%d.err", pid);
-            fp = fopen(filenameerr, "a");
-            //Normal termination with exit code
-            if (WIFEXITED(status)) {
-                fprintf(fp, "Exited with exit code = %d\n", WEXITSTATUS(status));
+        if (childPID > 0) {         //ensure only entered by parent process
+
+            struct timespec finish; //record endtime for child process
+            clock_gettime(CLOCK_MONOTONIC, &finish);
+            CommandNode* entry = FindCommand(head, childPID);
+
+            //file outputs and errs
+            sprintf(filenameout, "%d.out", childPID);
+            fd_out = open(filenameout, O_RDWR | O_CREAT | O_APPEND, 0777);
+            dup2(fd_out, 1);
+
+            sprintf(filenameerr, "%d.err", childPID);
+            fd_err = open(filenameerr, O_RDWR | O_CREAT | O_APPEND, 0777);
+            dup2(fd_err, 2);
+
+            elapsed = (double)(finish.tv_sec - (entry->starttime.tv_sec));
+            fprintf(stdout, "Finished child %d pid of parent %d\n", childPID, getpid());
+            fprintf(stdout, "Finished at %ld, runtime duration %.1f\n", finish.tv_sec, elapsed);
+            fflush(stdout);
+
+            if (WIFEXITED(status)) {             //Normal termination with exit code
+                fprintf(stderr, "Exited with exit code = %d\n", WEXITSTATUS(status));
             } else if (WIFSIGNALED(status)) {   //Abnormal termination with signal
-                fprintf(fp, "Killed with signal %d\n", WTERMSIG(status));
+                fprintf(stderr, "Killed with signal %d\n", WTERMSIG(status));
             }
-            fclose(fp);
 
-            sprintf(filenameout, "%d.out", pid);
-            fp = fopen(filenameout, "a");
-            fprintf(fp, "Finished child %d pid of parent %d\n", pid, getpid());
-            float elapsed =  (float)(finishtime.tv_sec - entry->starttime.tv_sec);
-            fprintf(fp, "Finished at %.ld, runtime duration %.f\n", entry->finishtime.tv_sec, elapsed);
-            //fprintf(fp, "Elapsed: %.1f\n", elapsed);
-            fclose(fp);
+            //Checks if process duration is less than 2 seconds
+            if (elapsed <= 2.0) {
+                fprintf(stderr, "Spawning too fast\n");
+            } else if (elapsed > 2.0) { //process duration is greater than 2 seconds and need to restart
+                char** cmds_array = entry->commands_array;
+                int new_index = entry->index;
+                struct timespec start;
+                clock_gettime(CLOCK_MONOTONIC, &start);     //save starttime of restarted process
 
+                pid_t pid = fork(); // create a child process
 
-            struct timespec new_starttime;
-            //process takes longer than 2 seconds
-            if (elapsed > 2) {
+                if (pid == 0) { // child process
 
-                clock_gettime(CLOCK_MONOTONIC, &new_starttime);
-                //forking and checking for error
-                if ((pid = fork()) < 0) {
-                    printf("fork error");
-                    exit(1);
-                } else if (pid == 0) { //child process
-                    //Out file
+                    //file outputs and errs
                     sprintf(filenameout, "%d.out", getpid());
                     fd_out = open(filenameout, O_RDWR | O_CREAT | O_APPEND, 0777);
                     dup2(fd_out, 1);
                     printf("RESTARTING\n");
-                    printf("Starting command %d: child %d pid of parent %d\n",  entry->index, getpid(), getppid());
+                    printf("Starting command %d: child %d pid of parent %d\n", new_index, getpid(), getppid());
                     fflush(stdout);
-                    close(fd_out);
 
-                    //Error file
                     sprintf(filenameerr, "%d.err", getpid());
                     fd_err = open(filenameerr, O_RDWR | O_CREAT | O_APPEND, 0777);
                     dup2(fd_err, 2);
-                    printf("RESTARTING\n");
 
-                    printf("%s", *(entry->words_array));
-                    execvp(entry->words_array[0], entry->words_array);
+                    // execute the command using execvp()
+                    if (execvp(cmds_array[0], cmds_array) <= 0) {
+                    fprintf(stderr, "Error: Failed to execute command: %s\n", cmds_array[0]);
+                    }
+                }
+                else if (pid > 0) {             //parent process
 
-                    //If exec fails
-                    fprintf(stderr, "Could not execute command: %s\n", entry->words_array[0]);
-                    fflush(stderr);
-                    close(fd_err);
-                    exit(2);
-                }
-                else if (pid > 0) { //Parent Process
-                    // char *concatenated_cmd = words_array_to_string(entry->words_array);
-                    // printf("concat: %s", concatenated_cmd);
-                    struct nlist *entry_new = insert(entry->command, (int)pid, entry->index);
-                    entry_new->starttime = new_starttime;
-                }
-            } else {    //takes less than 2 seconds
-                sprintf(filenameerr, "%d.err", pid);
-                fp = fopen(filenameerr, "a");
-                fprintf(fp, "spawning too fast\n");
-                fclose(fp);
+                    CommandNode* node = (CommandNode*)malloc(sizeof(CommandNode));
+                    CreateCommandNode(node, cmds_array, new_index, pid, NULL);
+                    if (head == NULL) {         //case where this no head yet in LinkedLis
+                        head = node;
+                        current = node;
+                    } else {                    //case when head exists and we add to after the current node
+                        InsertCommandAfter(current, node);
+                    }
+                    CommandNode* entry_new = FindCommand(head, pid);    //search for node by pid in linked list
+                    entry_new->starttime = start;                       //assign value of node starttime
+
+                    }
             }
         }
     }
-    // print_hashtable();
-    exit(0);
+
+    return 0;
 }
