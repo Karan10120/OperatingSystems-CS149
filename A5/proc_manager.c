@@ -232,9 +232,48 @@ int main(void) {
             if (elapsed <= 2.0) {
                 fprintf(stderr, "Spawning too fast\n");
             } else if (elapsed > 2.0) {
+                char** cmds_array = entry->commands_array;
+                int new_index = entry->index;
+                struct timespec start;
+                clock_gettime(CLOCK_MONOTONIC, &start);
 
+                pid_t pid = fork(); // create a child process
+
+
+
+                if (pid == 0) { // child process
+
+                    //file outputs and errs
+                    sprintf(filenameout, "%d.out", getpid());
+                    fd_out = open(filenameout, O_RDWR | O_CREAT | O_APPEND, 0777);
+                    dup2(fd_out, 1);
+                    printf("Starting command %d: child %d pid of parent %d\n", new_index, getpid(), getppid());
+                    fflush(stdout);
+
+                    sprintf(filenameerr, "%d.err", getpid());
+                    fd_err = open(filenameerr, O_RDWR | O_CREAT | O_APPEND, 0777);
+                    dup2(fd_err, 2);
+
+                    // execute the command using execvp()
+                    if (execvp(cmds_array[0], cmds_array) <= 0) {
+                    fprintf(stderr, "Error: Failed to execute command: %s\n", cmds_array[0]);
+                    }
+                }
+                else if (pid > 0) { // parent process
+
+                    CommandNode* node = (CommandNode*)malloc(sizeof(CommandNode));
+                    CreateCommandNode(node, cmds_array, new_index, pid, NULL);
+                    if (head == NULL) {         //no head yet
+                        head = node;
+                        current = node;
+                    } else {                    //head exists; adding to after current node
+                        InsertCommandAfter(current, node);
+                    }
+                    CommandNode* entry_new = FindCommand(head, pid);
+                    entry_new->starttime = start;
+
+                    }
             }
-
         }
     }
 
