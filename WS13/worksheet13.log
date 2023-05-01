@@ -1,0 +1,16 @@
+    1  rsync -arv filedir/ filedir1/
+    2  cp -r filedir/ filedir2/
+    3  ls -latr filedir1/
+    4  ls -latr filedir2/
+                            In filedir1, I noticed that the modification date and the file permissions
+                            remained the same as the original filedir. However, in filedir2 since cp was used
+                            the file permissions had changes to them as well as time stamps. So rsync had
+                            synchronized the contents of the directory, while cp has just made a copy.
+    5  cd filedir1
+    7  stat zap.c 
+    8  mkdir textDir
+   10  rmdir textDir/
+   13  find . -name zap.c
+   14  df
+   15  du -sh .
+   17  history > worksheet13.log
