@@ -1,10 +1,10 @@
 /**
  * Description: This program counts the occurences of names in
- * multiple files parallely.
+ * multiple files parallely through multi-threading.
  * Author names: Luc Tang, Karan Gandhi
  * Author emails: luc.tang@sjsu.edu, karan.gandhi@sjsu.edu
- * Last modified date: 03/06/2023
- * Creation date: 03/05/2023
+ * Last modified date: 05/10/2023
+ * Creation date: 05/08/2023
  **/
 
 #include <stdio.h>
@@ -41,7 +41,11 @@ int main(int argc, char *argv[]) {
     if (argc < 2) {
         return(0);
     }
-    my_data totalcounts[100]={ { '\0', 0 } };
+    else if (argc > 3) {
+        fprintf(stderr, "Too many files inputted, please only pass 2 input file.\n");
+        return(0);
+    }
+    my_data totalcounts[100]= {0};
     int nameIndex = 0;
 
     //Loops through each file inputted to create pipe and fork child process that counts name occurences.
@@ -68,7 +72,7 @@ int main(int argc, char *argv[]) {
                 exit(1);
             }
             //creates array of 100 my_data types and initalizes it to null and 0
-            my_data namecounts[100]={ { '\0', 0 } };
+            my_data namecounts[100]={0};
             //line buffer
             char line[31];
             //count of current line of file on
@@ -113,7 +117,7 @@ int main(int argc, char *argv[]) {
         } else {
             //Entering parent process
             wait(NULL);        //Wait for children to terminate
-            my_data namecounts[100]={ { '\0', 0 } };
+            my_data namecounts[100]={0};
             close(fd[1]);       //Close writing end of pipe
 
             //Reads from pipe buffer the most recent file in consecutive order
