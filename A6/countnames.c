@@ -259,7 +259,7 @@ void* thread_runner(void* x)
 
   pthread_mutex_lock(&tlock1);
   logindex++;
-  pthread_mutex_unlock(&tlock1);
+
 
   // TODO use mutex to make this a start of a critical section
   pthread_mutex_lock(&tlock2);  // critical section starts
@@ -276,7 +276,7 @@ void* thread_runner(void* x)
     printf("Logindex %d, thread %ld, PID %d, %s: This is thread %ld and I can access the THREADDATA\n", logindex, me, getpid(), date, me);
   }
   pthread_mutex_unlock(&tlock2);// critical section ends
-
+  pthread_mutex_unlock(&tlock1);
   pthread_exit(NULL);
   return NULL;
 
