@@ -1,8 +1,19 @@
+/**
+ * Description: This program counts the occurences of names in
+ * multiple files parallely using multi-threading.
+ * Author names: Luc Tang, Karan Gandhi
+ * Author emails: luc.tang@sjsu.edu, karan.gandhi@sjsu.edu
+ * Last modified date: 05/10/2023
+ * Creation date: 05/07/2023
+ **/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <sys/time.h>
+#include <time.h>
 
 /*****************************************
 //CS149 SP23
@@ -12,20 +23,13 @@
 *****************************************/
 
 //thread mutex lock for access to the log index
-//TODO you need to use this mutexlock for mutual exclusion
-//when you print log messages from each thread
 pthread_mutex_t tlock1 = PTHREAD_MUTEX_INITIALIZER;
 
-
 //thread mutex lock for critical sections of allocating THREADDATA
-//TODO you need to use this mutexlock for mutual exclusion
 pthread_mutex_t tlock2 = PTHREAD_MUTEX_INITIALIZER;
 
-
 //thread mutex lock for access to the name counts data structure
-//TODO you need to use this mutexlock for mutual exclusion
 pthread_mutex_t tlock3 = PTHREAD_MUTEX_INITIALIZER;
-
 
 void* thread_runner(void*);
 pthread_t tid1, tid2;
@@ -40,16 +44,12 @@ typedef struct THREADDATA_STRUCT THREADDATA;
 
 THREADDATA* p=NULL;
 
-
 //variable for indexing of messages by the logging function.
 int logindex=0;
 int *logip = &logindex;
 
 
-//The name counts.
-// You can use any data structure you like, here are 2 proposals: a linked list OR an array (up to 100 names).
-//The linked list will be faster since you only need to lock one node, while for the array you need to lock the whole array.
-//You can use a linked list template from A5. You should also consider using a hash table, like in A5 (even faster).
+//struct that contains name up to 30 chars and it's count
 struct NAME_STRUCT
 {
   char name[30];
@@ -70,13 +70,17 @@ struct NAME_NODE
 #define HASHSIZE 101
 static struct NAME_NODE *table[HASHSIZE];
 
+//hashing function by first letter
 int hash(char input) {
   return input%HASHSIZE;
 }
 
+//searching for a node by name
 struct NAME_NODE *search(char* name) {
   struct NAME_NODE *current;
+  //look through hashtable bucket
   for(current = table[hash(name[0])]; current != NULL; current = current->next) {
+    //return node if names match
     if (strcmp(name, current->name_count.name)==0) {
       return current;
     }
@@ -84,29 +88,35 @@ struct NAME_NODE *search(char* name) {
   return NULL;
 }
 
+//increment count of name node
 struct NAME_NODE *update(char* name) {
 
   struct NAME_NODE *current;
+  //checking to see if name is not in hashtable
   if((current = search(name)) == NULL) {
     current = (struct NAME_NODE *)malloc(sizeof(*current));
+    //checking if malloc failed
     if(current == NULL) {
       return NULL;
     }
     strcpy(current->name_count.name, name);
     current->name_count.count = 1;
     int value = hash(name[0]);
-
+    //add node to front of linked list (bucket)
     current->next = table[value];
     table[value] = current;
-  } else {
+  } else {  //increments count if already in hashtable
     current->name_count.count = current->name_count.count + 1;
   }
   return current;
 }
 
+//free memory for all hashtable nodes
 void freeHashTable() {
   struct NAME_NODE *current;
+  //go through each bucket
   for(int i = 0; i < HASHSIZE; i++) {
+    //loops through all nodes in bucket and frees node
     while(table[i]!=NULL){
       current = table[i];
       table[i] = current->next;
@@ -115,10 +125,12 @@ void freeHashTable() {
   }
 }
 
-//want to charge to return char*
+//prints out current date and time
 void getDateTime(char* time_day) {
   time_t current;
   time(&current);
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
   int hour, min, sec, day, month, year;
   struct tm *localTime = localtime(&current);
 
@@ -129,6 +141,7 @@ void getDateTime(char* time_day) {
   month = localTime->tm_mon + 1;
   year = localTime->tm_year + 1900;
 
+  //conditionals for A.M. and P.M. time
   if (hour < 12) sprintf(time_day, "%02d/%02d/%04d %02d:%02d:%02d AM", month, day, year, hour, min, sec);
   else sprintf(time_day, "%02d/%02d/%04d %02d:%02d:%02d PM", month, day, year, hour - 12, min, sec);
 }
@@ -137,15 +150,30 @@ void getDateTime(char* time_day) {
 // function main
 *********************************************************/
 static char* date = NULL;
-
+/**
+ * This function counts and prints names for two files.
+ * Assumption:
+ * 1. The longest name is 30 characters long.
+ * 2. The files have at most 100 unique names in total.
+ * 3. Each line contains atmost a name.
+ * 4. Each name is separated by a new line.
+ * 5. Names contain simple characters of Ascii values from 0-128.
+ * 6. Input file contains only valid characters.
+ *
+ * Input parameters: argc, argv[]
+ * Returns: int
+ * Prints: 
+ * "Log Messages"
+ *     . . .
+ * "Name Counts"
+**/
 int main(int argc, char *argv[])
 {
-  //TODO similar interface as A2: give as command-line arguments three filenames of numbers (the numbers in the files are newline-separated).
-
+  //check if no files are inputted
   if (argc < 2) {
     fprintf(stderr, "No file inputted.\n");
     return(0);
-  } else if (argc > 3) {
+  } else if (argc > 3) {    //checks if more than 2 files are inputted
     fprintf(stderr, "Too many files inputted, please only pass 2 input file.\n");
     return(0);
   }
@@ -171,8 +199,10 @@ int main(int argc, char *argv[])
   printf("\n======================== Name Counts =======================\n");
 
   struct NAME_NODE *current_name;
+  //going through all buckets in hashtable
   for (int i = 0; i < HASHSIZE; i++) {
     current_name = table[i];
+    //printing all names in bucket
     while(current_name != NULL) {
       printf("%s: %d\n", current_name->name_count.name, current_name->name_count.count);
       current_name = current_name->next;
@@ -198,9 +228,10 @@ void* thread_runner(void* x)
 
   me = pthread_self();
   printf("This is thread %ld (p=%p)\n",me,p);
-  getDateTime(date);        //maybe comment out line
+  getDateTime(date);
 
   pthread_mutex_lock(&tlock2); // critical section starts
+  //allocates THREADDATA memory if it has not been allocated
   if (p==NULL) {
     p = (THREADDATA*) malloc(sizeof(THREADDATA));
     p->creator=me;
@@ -209,27 +240,20 @@ void* thread_runner(void* x)
 
   pthread_mutex_lock(&tlock1);  // mutual exclusion logindex and printing starts
   getDateTime(date);
+  //checking if this thread created THREADDATA
   if (p!=NULL && p->creator==me) {
     // logindex++;
     printf("Logindex %d, thread %ld, PID %d, %s: This is thread %ld and I created THREADDATA %p\n",++logindex, me, getpid(), date, me, p);
-  } else {
+  } else {      //this thread can access THREADDATA
     printf("Logindex %d, thread %ld, PID %d, %s: This is thread %ld and I can access the THREADDATA %p\n",++logindex, me, getpid(), date, me, p);
   }
   pthread_mutex_unlock(&tlock1);  //  mutual exclusion logindex and printing ends
 
-
-  /**
-   * //TODO implement any thread name counting functionality you need.
-   * Assign one file per thread. Hint: you can either pass each argv filename as a thread_runner argument from main.
-   * Or use the logindex to index argv, since every thread will increment the logindex anyway
-   * when it opens a file to print a log message (e.g. logindex could also index argv)....
-   * //Make sure to use any mutex locks appropriately
-   */
-
   fp = fopen(file_name, "r");
 
+  //checking if file cannot be opened
   if (fp == NULL) fprintf(stderr, "Can not open file: %s\n", file_name);
-  else {
+  else {    //file was opened and begin reading
     getDateTime(date);
     pthread_mutex_lock(&tlock1);
     logindex++;
@@ -239,40 +263,33 @@ void* thread_runner(void* x)
     char line[31];
     int line_index = 0;
 
+    //reading file line by line
     while(fgets(line, sizeof(line), fp) != NULL) {
-      //line_index++;
+      line_index++;
+      //checking if line is empty
       if(line[0] == 0 || line[0] == '\n') {
         fprintf(stderr, "Warning - file %s line %d is empty.\n", file_name, line_index);
-      } else {
+      } else {    //updates name count in hashtable
         //Removes trailing new line character from string
         line[strcspn(line, "\n")] = 0;
 
         pthread_mutex_lock(&tlock3);
-        //struct NAME_NODE *nameNode = update(line);
         update(line);
         pthread_mutex_unlock(&tlock3);
       }
     }
+    fclose(fp);
+    // fp=NULL;
   }
 
-
-
   pthread_mutex_lock(&tlock1);
-  // logindex++;
-
-
-  // TODO use mutex to make this a start of a critical section
   pthread_mutex_lock(&tlock2);  // critical section starts
+  //checking if this thread allocated THREADDATA and deletes (frees) it
   if (p!=NULL && p->creator==me) {
     printf("Logindex %d, thread %ld, PID %d, %s: This is thread %ld and I delete THREADDATA\n",++logindex, me, getpid(), date, me);
     free(p);
     p = NULL;
-  /**
-   * TODO Free the THREADATA object.
-   * Freeing should be done by the same thread that created it.
-   * See how the THREADDATA was created for an example of how this is done.
-   */
-  } else {
+  } else {    //this thread did not create THREADDATA and can access it
     printf("Logindex %d, thread %ld, PID %d, %s: This is thread %ld and I can access the THREADDATA\n", ++logindex, me, getpid(), date, me);
   }
   pthread_mutex_unlock(&tlock2);// critical section ends
