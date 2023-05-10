@@ -67,12 +67,13 @@ struct NAME_NODE
   struct NAME_NODE *next;
 };
 
-#define HASHSIZE 101
+
+#define HASHSIZE 101                        //start of hashtable implementation
 static struct NAME_NODE *table[HASHSIZE];
 
 //hashing function by first letter
 int hash(char input) {
-  return input%HASHSIZE;
+  return (input%HASHSIZE);
 }
 
 //searching for a node by name
@@ -90,23 +91,25 @@ struct NAME_NODE *search(char* name) {
 
 //increment count of name node
 struct NAME_NODE *update(char* name) {
-
   struct NAME_NODE *current;
-  //checking to see if name is not in hashtable
-  if((current = search(name)) == NULL) {
+
+  //checking to see if name is already in hashtable and if so increment count
+  if((current = search(name)) != NULL) {
+    current->name_count.count = current->name_count.count + 1;
+  } else {    //name is not in hashtable so create node for new name
+
     current = (struct NAME_NODE *)malloc(sizeof(*current));
     //checking if malloc failed
     if(current == NULL) {
       return NULL;
     }
+
     strcpy(current->name_count.name, name);
     current->name_count.count = 1;
     int value = hash(name[0]);
     //add node to front of linked list (bucket)
     current->next = table[value];
     table[value] = current;
-  } else {  //increments count if already in hashtable
-    current->name_count.count = current->name_count.count + 1;
   }
   return current;
 }
@@ -126,24 +129,23 @@ void freeHashTable() {
 }
 
 //prints out current date and time
-void getDateTime(char* time_day) {
-  time_t current;
-  time(&current);
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  int hour, min, sec, day, month, year;
-  struct tm *localTime = localtime(&current);
+void updateDate_Time(char* time_day) {
+  time_t now;
+  time(&now);
+  int hours, minutes, seconds, day, month, year;
+  struct tm *localTime = localtime(&now);
 
-  hour = localTime->tm_hour;
-  min = localTime->tm_min;
-  sec = localTime->tm_sec;
+  hours = localTime->tm_hour;
+  minutes = localTime->tm_min;
+  seconds = localTime->tm_sec;
+
   day = localTime->tm_mday;
   month = localTime->tm_mon + 1;
   year = localTime->tm_year + 1900;
 
   //conditionals for A.M. and P.M. time
-  if (hour < 12) sprintf(time_day, "%02d/%02d/%04d %02d:%02d:%02d AM", month, day, year, hour, min, sec);
-  else sprintf(time_day, "%02d/%02d/%04d %02d:%02d:%02d PM", month, day, year, hour - 12, min, sec);
+  if (hours < 12) sprintf(time_day, "%02d/%02d/%04d %02d:%02d:%02d AM", month, day, year, hours, minutes, seconds);
+  else sprintf(time_day, "%02d/%02d/%04d %02d:%02d:%02d PM", month, day, year, hours - 12, minutes, seconds);
 }
 
 /*********************************************************
@@ -227,8 +229,8 @@ void* thread_runner(void* x)
   char* file_name = (char*) x;
 
   me = pthread_self();
-  printf("This is thread %ld (p=%p)\n",me,p);
-  getDateTime(date);
+  printf("This is thread %ld\n",me);
+  updateDate_Time(date);
 
   pthread_mutex_lock(&tlock2); // critical section starts
   //allocates THREADDATA memory if it has not been allocated
@@ -239,7 +241,7 @@ void* thread_runner(void* x)
   pthread_mutex_unlock(&tlock2);  // critical section ends
 
   pthread_mutex_lock(&tlock1);  // mutual exclusion logindex and printing starts
-  getDateTime(date);
+  updateDate_Time(date);
   //checking if this thread created THREADDATA
   if (p!=NULL && p->creator==me) {
     // logindex++;
@@ -254,7 +256,7 @@ void* thread_runner(void* x)
   //checking if file cannot be opened
   if (fp == NULL) fprintf(stderr, "Can not open file: %s\n", file_name);
   else {    //file was opened and begin reading
-    getDateTime(date);
+    updateDate_Time(date);
     pthread_mutex_lock(&tlock1);
     logindex++;
     printf("Logindex %d, thread %ld, PID %d, %s: opened file %s\n", logindex, me, getpid(), date, file_name);
@@ -286,11 +288,11 @@ void* thread_runner(void* x)
   pthread_mutex_lock(&tlock2);  // critical section starts
   //checking if this thread allocated THREADDATA and deletes (frees) it
   if (p!=NULL && p->creator==me) {
-    printf("Logindex %d, thread %ld, PID %d, %s: This is thread %ld and I delete THREADDATA\n",++logindex, me, getpid(), date, me);
+    printf("Logindex %d, thread %ld, PID %d, %s: This is thread %p and I delete THREADDATA\n",++logindex, me, getpid(), date, me);
     free(p);
     p = NULL;
   } else {    //this thread did not create THREADDATA and can access it
-    printf("Logindex %d, thread %ld, PID %d, %s: This is thread %ld and I can access the THREADDATA\n", ++logindex, me, getpid(), date, me);
+    printf("Logindex %d, thread %ld, PID %d, %s: This is thread %p and I can access the THREADDATA\n", ++logindex, me, getpid(), date, me);
   }
   pthread_mutex_unlock(&tlock2);// critical section ends
   pthread_mutex_unlock(&tlock1);
