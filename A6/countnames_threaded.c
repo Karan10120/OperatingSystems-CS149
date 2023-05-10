@@ -19,7 +19,7 @@
 //CS149 SP23
 //Template for assignment 6
 //San Jose State University
-//originally prepared by Bill Andreopoulos
+//starter code originally prepared by Bill Andreopoulos
 *****************************************/
 
 //thread mutex lock for access to the log index
