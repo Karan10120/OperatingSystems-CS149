@@ -210,10 +210,10 @@ void* thread_runner(void* x)
   pthread_mutex_lock(&tlock1);  // mutual exclusion logindex and printing starts
   getDateTime(date);
   if (p!=NULL && p->creator==me) {
-    logindex++;
-    printf("Logindex %d, thread %ld, PID %d, %s: This is thread %ld and I created THREADDATA %p\n",logindex, me, getpid(), date, me, p);
+    // logindex++;
+    printf("Logindex %d, thread %ld, PID %d, %s: This is thread %ld and I created THREADDATA %p\n",++logindex, me, getpid(), date, me, p);
   } else {
-    printf("Logindex %d, thread %ld, PID %d, %s: This is thread %ld and I can access the THREADDATA %p\n",logindex, me, getpid(), date, me, p);
+    printf("Logindex %d, thread %ld, PID %d, %s: This is thread %ld and I can access the THREADDATA %p\n",++logindex, me, getpid(), date, me, p);
   }
   pthread_mutex_unlock(&tlock1);  //  mutual exclusion logindex and printing ends
 
@@ -258,13 +258,13 @@ void* thread_runner(void* x)
 
 
   pthread_mutex_lock(&tlock1);
-  logindex++;
+  // logindex++;
 
 
   // TODO use mutex to make this a start of a critical section
   pthread_mutex_lock(&tlock2);  // critical section starts
   if (p!=NULL && p->creator==me) {
-    printf("Logindex %d, thread %ld, PID %d, %s: This is thread %ld and I delete THREADDATA\n",logindex, me, getpid(), date, me);
+    printf("Logindex %d, thread %ld, PID %d, %s: This is thread %ld and I delete THREADDATA\n",++logindex, me, getpid(), date, me);
     free(p);
     p = NULL;
   /**
@@ -273,7 +273,7 @@ void* thread_runner(void* x)
    * See how the THREADDATA was created for an example of how this is done.
    */
   } else {
-    printf("Logindex %d, thread %ld, PID %d, %s: This is thread %ld and I can access the THREADDATA\n", logindex, me, getpid(), date, me);
+    printf("Logindex %d, thread %ld, PID %d, %s: This is thread %ld and I can access the THREADDATA\n", ++logindex, me, getpid(), date, me);
   }
   pthread_mutex_unlock(&tlock2);// critical section ends
   pthread_mutex_unlock(&tlock1);
