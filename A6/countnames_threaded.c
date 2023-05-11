@@ -288,11 +288,11 @@ void* thread_runner(void* x)
   pthread_mutex_lock(&tlock2);  // critical section starts
   //checking if this thread allocated THREADDATA and deletes (frees) it
   if (p!=NULL && p->creator==me) {
-    printf("Logindex %d, thread %ld, PID %d, %s: This is thread %p and I delete THREADDATA\n",++logindex, me, getpid(), date, me);
+    printf("Logindex %d, thread %ld, PID %d, %s: This is thread %ld and I delete THREADDATA\n",++logindex, me, getpid(), date, me);
     free(p);
     p = NULL;
   } else {    //this thread did not create THREADDATA and can access it
-    printf("Logindex %d, thread %ld, PID %d, %s: This is thread %p and I can access the THREADDATA\n", ++logindex, me, getpid(), date, me);
+    printf("Logindex %d, thread %ld, PID %d, %s: This is thread %ld and I can access the THREADDATA\n", ++logindex, me, getpid(), date, me);
   }
   pthread_mutex_unlock(&tlock2);// critical section ends
   pthread_mutex_unlock(&tlock1);
